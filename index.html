@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>五寮尖生乳戰情 V10</title>
+    <title>五寮尖生乳存摺 V10.0 Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.2.37/lunar.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -26,15 +22,9 @@
         }
         .milk-table { border-collapse: separate; border-spacing: 0; }
         .milk-table th, .milk-table td { 
-            padding: 8px 4px; 
-            text-align: center; 
-            border-bottom: 1px solid #e2e8f0; 
-            border-right: 1px solid #f1f5f9;
-            white-space: nowrap;
-            font-size: 13px;
-            font-weight: 700;
+            padding: 8px 4px; text-align: center; border-bottom: 1px solid #e2e8f0; 
+            border-right: 1px solid #f1f5f9; white-space: nowrap; font-size: 13px; font-weight: 700;
         }
-        /* Sticky Columns/Rows */
         .milk-table td:first-child, .milk-table th:first-child {
             position: sticky; left: 0; background-color: #fff; z-index: 20;
             border-right: 2px solid #e2e8f0; text-align: left; padding-left: 12px;
@@ -46,17 +36,23 @@
         
         .editable-cell { cursor: pointer; transition: background 0.2s; }
         .editable-cell:active { background-color: #f1f5f9; }
-        .val-input { color: #10b981; }
-        .val-adhoc { color: #ef4444; }
+        .val-input { color: #10b981; } 
+        .val-output { color: #f59e0b; } /* 出貨顏色 */
         .val-balance { color: #3b82f6; font-weight: 900; background-color: #eff6ff; }
         .val-negative { color: #ef4444; background-color: #fef2f2; }
         
         .manual-dot {
-            position: absolute; top: 4px; right: 4px; 
-            width: 5px; h-5px; border-radius: 50%;
-            background-color: #6366f1;
+            position: absolute; top: 4px; right: 4px; width: 5px; height: 5px; 
+            border-radius: 50%; background-color: #6366f1;
         }
         .lunar-text { font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 1px; }
+        .weekend-col { background-color: #fff7ed; }
+
+        /* Detail List inside Modal */
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+        .detail-row:last-child { border-bottom: none; }
+        .tag-big { background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px; }
+        .tag-small { background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
     </style>
 </head>
 <body class="h-screen overflow-hidden flex flex-col text-slate-800">
@@ -66,19 +62,15 @@
     <header class="bg-white px-4 py-3 border-b border-slate-100 flex-none z-30 shadow-sm">
         <div class="flex justify-between items-end">
             <div>
-                <div class="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                    今日預估結餘 (22:00)
-                    <span v-if="!firebaseConnected" class="text-red-500 animate-pulse">●</span>
-                    <span v-else class="text-emerald-500">●</span>
-                </div>
+                <div class="text-[10px] font-bold text-slate-400 mb-1">今日預估結餘 (22:00)</div>
                 <div class="text-3xl font-black text-slate-800 flex items-baseline gap-1">
-                    {{ todayEndStock.toFixed(1) }} <span class="text-sm text-slate-500 font-bold">kg</span>
+                    {{ todayEndStock.toFixed(1) }} <span class="text-sm text-slate-500 font-bold">L</span>
                 </div>
             </div>
             <div class="text-right">
-                <div class="text-[10px] font-bold text-slate-400 mb-1">今日總出貨</div>
-                <div class="text-xl font-bold text-red-500">
-                    -{{ (todayDemand + todayHomeDelivery).toFixed(1) }} kg
+                <div class="text-[10px] font-bold text-slate-400 mb-1">營運週期</div>
+                <div class="text-xs font-bold text-blue-600">
+                    今天 <i class="fas fa-arrow-right text-[10px]"></i> 2026/02/24
                 </div>
             </div>
         </div>
@@ -87,7 +79,7 @@
         </div>
     </header>
 
-    <main class="flex-1 bg-white relative overflow-hidden flex flex-col pb-20">
+    <main class="flex-1 bg-white relative overflow-hidden flex flex-col pb-20"> 
         <div class="milk-table-container h-full">
             <table class="milk-table">
                 <thead>
@@ -123,25 +115,36 @@
                             <div v-if="day.isManual.harvestAM" class="manual-dot"></div>
                         </td>
                     </tr>
+                    
                     <tr class="bg-slate-50/50">
-                        <td><i class="fas fa-truck text-red-400 w-4"></i> 09:00 一般配送</td>
-                        <td v-for="(day, idx) in milkBankDays" :key="idx" class="text-slate-500 font-medium text-xs">
-                            -{{ day.demand.toFixed(1) }}
+                        <td><i class="fas fa-truck text-red-400 w-4"></i> 09:00 晨間配送</td>
+                        <td v-for="(day, idx) in milkBankDays" :key="idx"
+                            @click="openInputModal('deliveryAM', day)"
+                            class="editable-cell relative" 
+                            :class="[day.deliveryAM > 0 ? 'text-slate-700 font-bold' : 'text-slate-300', day.isWeekend ? 'bg-orange-50/30' : '']">
+                            <span v-if="day.isPaused" class="text-xs text-red-400 font-bold">暫停</span>
+                            <span v-else>-{{ day.deliveryAM.toFixed(1) }}</span>
+                            <div v-if="day.isManual.deliveryAM" class="manual-dot"></div>
                         </td>
                     </tr>
-                    <tr class="bg-orange-50/20">
-                        <td><i class="fas fa-home text-orange-500 w-4"></i> 10:00 小農宅配</td>
-                        <td v-for="(day, idx) in milkBankDays" :key="idx" class="text-orange-600 font-bold text-xs">
-                            -{{ day.homeDelivery.toFixed(1) }}
+
+                    <tr class="bg-blue-50/30">
+                        <td><i class="fas fa-home text-blue-400 w-4"></i> 10:00 宅配家庭</td>
+                        <td v-for="(day, idx) in milkBankDays" :key="idx"
+                            @click="openInputModal('deliveryHome', day)"
+                            class="editable-cell relative"
+                            :class="[day.deliveryHome > 0 ? 'text-blue-700 font-bold' : 'text-slate-300', day.isWeekend ? 'bg-orange-50/30' : '']">
+                            -{{ day.deliveryHome.toFixed(1) }}
+                            <div v-if="day.isManual.deliveryHome" class="manual-dot"></div>
                         </td>
                     </tr>
                     
-                    <tr v-for="n in 3" :key="`adhoc${n}`">
-                        <td><i class="fas fa-box text-slate-400 w-4"></i> 14:00 團購/調貨 {{n}}</td>
+                    <tr v-for="n in 2" :key="`adhoc${n}`">
+                        <td><i class="fas fa-box text-orange-400 w-4"></i> 14:00 團購出貨 {{n}}</td>
                         <td v-for="(day, idx) in milkBankDays" :key="idx" 
                             @click="openInputModal(`adhoc${n}`, day)"
                             class="editable-cell relative"
-                            :class="[day[`adhoc${n}`] !== 0 ? 'val-adhoc font-bold' : 'text-slate-300', day.isWeekend ? 'bg-orange-50/30' : '']">
+                            :class="[day[`adhoc${n}`] !== 0 ? 'val-output font-bold' : 'text-slate-300', day.isWeekend ? 'bg-orange-50/30' : '']">
                             {{ day[`adhoc${n}`] }}
                             <div v-if="day.isManual[`adhoc${n}`]" class="manual-dot"></div>
                         </td>
@@ -169,50 +172,63 @@
         </div>
     </main>
 
-    <div class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] pb-safe">
-        <div class="flex justify-between items-center px-4 py-2">
-            <div class="flex flex-col">
-                <span class="text-[10px] text-slate-400 font-bold uppercase">Cloud Action</span>
-                <span class="text-xs font-bold text-slate-800">快速記帳</span>
-            </div>
-            <div class="flex gap-3">
-                <button @click="openQuickAction('inventory')" class="flex flex-col items-center justify-center w-12 h-10 bg-indigo-50 text-indigo-600 rounded-lg active:bg-indigo-100 transition"><i class="fas fa-clipboard-check text-sm mb-0.5"></i><span class="text-[9px] font-bold">盤點</span></button>
-                <button @click="openQuickAction('harvestAM')" class="flex flex-col items-center justify-center w-12 h-10 bg-emerald-50 text-emerald-600 rounded-lg active:bg-emerald-100 transition"><i class="fas fa-tint text-sm mb-0.5"></i><span class="text-[9px] font-bold">晨收</span></button>
-                <button @click="openQuickAction('harvestPM')" class="flex flex-col items-center justify-center w-12 h-10 bg-blue-50 text-blue-600 rounded-lg active:bg-blue-100 transition"><i class="fas fa-moon text-sm mb-0.5"></i><span class="text-[9px] font-bold">晚收</span></button>
-                <button @click="openQuickAction('adhoc1')" class="flex flex-col items-center justify-center w-12 h-10 bg-orange-50 text-orange-600 rounded-lg active:bg-orange-100 transition"><i class="fas fa-box text-sm mb-0.5"></i><span class="text-[9px] font-bold">團購</span></button>
-                <button @click="resetData" class="flex flex-col items-center justify-center w-10 h-10 text-slate-300 rounded-lg active:text-slate-500 transition"><i class="fas fa-trash text-sm"></i></button>
-            </div>
-        </div>
-        <div class="h-4 bg-white"></div>
-    </div>
-
     <transition name="fade">
         <div v-if="inputModal.show" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center pointer-events-none">
             <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm pointer-events-auto transition-opacity" @click="inputModal.show = false"></div>
-            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl relative p-6 pointer-events-auto transform transition-transform duration-300 pb-10">
-                <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
+            <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl relative flex flex-col max-h-[85vh] pointer-events-auto transform transition-transform duration-300">
                 
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 class="text-xl font-black text-slate-800">{{ inputModal.title }}</h3>
-                        <p class="text-xs text-slate-400 font-bold mt-1">{{ inputModal.subtitle }}</p>
-                    </div>
-                    <div class="text-right">
-                        <div class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-500 mb-1">{{ inputModal.dateLabel }}</div>
-                        <div class="text-[10px] text-slate-400">{{ inputModal.lunarLabel }}</div>
+                <div class="p-6 pb-2">
+                    <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">{{ inputModal.title }}</h3>
+                            <p class="text-xs text-slate-400 font-bold mt-1">{{ inputModal.subtitle }}</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="bg-slate-100 px-3 py-1 rounded-lg text-xs font-bold text-slate-500 mb-1">
+                                {{ inputModal.dateLabel }}
+                            </div>
+                            <div v-if="inputModal.isPaused" class="bg-red-100 px-2 py-0.5 rounded text-[10px] text-red-600 font-bold">
+                                系統暫停中
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4 mb-8">
-                    <button @click="adjustValue(-1)" class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 text-lg font-bold hover:bg-slate-200 active:scale-95 transition"><i class="fas fa-minus"></i></button>
-                    <div class="flex-1 relative">
-                        <input v-model.number="inputModal.value" type="number" class="w-full text-center text-4xl font-black text-slate-800 border-b-2 border-slate-200 py-2 focus:outline-none focus:border-blue-500 bg-transparent">
-                        <span class="absolute right-2 bottom-4 text-slate-300 font-bold text-sm">kg</span>
+                <div class="overflow-y-auto px-6 pb-6">
+                    <div class="flex items-center gap-4 mb-6">
+                        <button @click="adjustValue(-0.5)" class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 text-lg font-bold hover:bg-slate-200"><i class="fas fa-minus"></i></button>
+                        <div class="flex-1 relative text-center">
+                            <input v-model.number="inputModal.value" type="number" step="0.1" class="w-full text-center text-4xl font-black text-slate-800 border-b-2 border-slate-200 py-2 focus:outline-none focus:border-blue-500 bg-transparent">
+                            <span class="text-slate-400 text-xs font-bold block mt-1">公升 (L)</span>
+                        </div>
+                        <button @click="adjustValue(0.5)" class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 text-lg font-bold hover:bg-slate-200"><i class="fas fa-plus"></i></button>
                     </div>
-                    <button @click="adjustValue(1)" class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-600 text-lg font-bold hover:bg-slate-200 active:scale-95 transition"><i class="fas fa-plus"></i></button>
-                </div>
 
-                <button @click="confirmInput" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 active:scale-[0.98] transition">更新至雲端</button>
+                    <div v-if="inputModal.details && inputModal.details.length > 0" class="bg-slate-50 rounded-xl p-4 mb-6">
+                        <div class="text-[10px] uppercase text-slate-400 font-bold mb-2 flex justify-between">
+                            <span>訂單明細 (系統計算)</span>
+                            <span>{{ inputModal.details.length }} 筆</span>
+                        </div>
+                        <div class="max-h-[150px] overflow-y-auto">
+                            <div v-for="(item, idx) in inputModal.details" :key="idx" class="detail-row">
+                                <div class="font-bold text-slate-700 truncate w-1/2">{{ item.name }}</div>
+                                <div class="text-right w-1/2">
+                                    <span v-if="item.big > 0" class="tag-big">{{ item.big }} 大</span>
+                                    <span v-if="item.small > 0" class="tag-small">{{ item.small }} 小</span>
+                                    <span class="ml-1 text-slate-500 font-medium">= {{ ((item.big*0.95)+(item.small*0.5)).toFixed(2) }}L</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button @click="confirmInput" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 active:scale-[0.98] transition">
+                        確認更新
+                    </button>
+                    <button v-if="inputModal.isManual" @click="revertToAuto" class="w-full mt-3 py-2 text-slate-400 font-bold text-xs">
+                        回復系統計算值
+                    </button>
+                </div>
             </div>
         </div>
     </transition>
@@ -221,111 +237,93 @@
 
 <script>
     const { createApp, ref, computed, onMounted } = Vue;
-    
-    // Firebase Config
-    const firebaseConfig = {
-        apiKey: "AIzaSyB6D9vh6J2mdnjz2VXEVe99oi7oLF-irFo",
-        authDomain: "crm-ts-1225-001.firebaseapp.com",
-        databaseURL: "https://crm-ts-1225-001-default-rtdb.firebaseio.com",
-        projectId: "crm-ts-1225-001",
-        storageBucket: "crm-ts-1225-001.firebasestorage.app",
-        messagingSenderId: "925760221722",
-        appId: "1:925760221722:web:1aeda0b82f1f16b8dcd7a3"
-    };
-
-    let db;
-    try { firebase.initializeApp(firebaseConfig); db = firebase.database(); } catch (e) { console.error(e); }
-
-    // CSV URLs
-    const routeCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=216467280&single=true&output=csv';
-    const homeCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=59343971&single=true&output=csv';
+    // 晨間配送 (一般) - 舊表
+    const urlMorning = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=216467280&single=true&output=csv';
+    // 宅配家庭號 - 新表
+    const urlHome = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=59343971&single=true&output=csv';
 
     createApp({
         setup() {
-            const rawRouteData = ref([]);
+            // Data Holders
+            const rawMorningData = ref([]);
             const rawHomeData = ref([]);
             const savedData = ref({}); 
-            const firebaseConnected = ref(false);
-            const inputModal = ref({ show: false, field: '', dateKey: '', value: 0, title: '', subtitle: '', dateLabel: '', lunarLabel: '' });
-            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const inputModal = ref({ show: false, field: '', dateKey: '', value: 0, title: '', subtitle: '', details: [], isManual: false, isPaused: false });
             
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
             const defaults = { harvestAM: 13, harvestPM: 15 };
 
-            // 1. Firebase Logic
-            const initFirebase = () => {
-                if(!db) return;
-                db.ref('milk_bank_v2').on('value', (snap) => {
-                    savedData.value = snap.val() || {};
-                    firebaseConnected.value = true;
-                });
+            // Storage
+            const loadSavedData = () => {
+                const json = localStorage.getItem('milkBankPro_v10');
+                if (json) savedData.value = JSON.parse(json);
             };
-            
-            const saveToCloud = (dateKey, field, value) => {
-                if(!db) return;
-                db.ref(`milk_bank_v2/${dateKey}/${field}`).set(value);
+            const saveToStorage = () => localStorage.setItem('milkBankPro_v10', JSON.stringify(savedData.value));
+
+            // Fetch Data
+            const fetchAllData = async () => {
+                try {
+                    const [resMorning, resHome] = await Promise.all([
+                        fetch(urlMorning).then(r=>r.text()),
+                        fetch(urlHome).then(r=>r.text())
+                    ]);
+                    parseMorningCSV(resMorning);
+                    parseHomeCSV(resHome);
+                } catch(e) { console.error("Data Load Error", e); }
             };
 
-            const resetData = () => {
-                if(confirm('確定要清空雲端所有記錄嗎？(此操作無法復原)')) {
-                    if(db) db.ref('milk_bank_v2').remove();
+            const parseMorningCSV = (text) => {
+                const lines = text.trim().split('\n');
+                const res = [];
+                for(let i=1; i<lines.length; i++) {
+                    const row = lines[i].split(',');
+                    if(row.length<3) continue;
+                    const weekly = [];
+                    for(let d=0; d<7; d++) {
+                        const s = 3 + (d*5);
+                        // 簡單加總瓶數
+                        const sum = [0,1,2,3,4].reduce((acc, off) => {
+                            const val = row[s+off] ? parseInt(row[s+off].toString().replace(/２/g,'2').trim()) || 0 : 0;
+                            return acc + val;
+                        }, 0);
+                        weekly.push({ bottles: sum, routeId: row[0] });
+                    }
+                    res.push({ id: row[0], weekly });
                 }
+                rawMorningData.value = res;
             };
 
-            // 2. Fetch CSVs
-            const parseNum = (v) => v ? parseFloat(v.toString().trim()) || 0 : 0;
-            
-            const fetchRouteCsv = () => {
-                fetch(routeCsvUrl).then(r=>r.text()).then(t => {
-                    const lines = t.trim().split('\n');
-                    const res = [];
-                    for(let i=1; i<lines.length; i++) {
-                        const row = lines[i].split(',');
-                        if(row.length<3) continue;
-                        const weekly = [];
-                        for(let d=0; d<7; d++) {
-                            const s = 3 + (d*5);
-                            const sum = [0,1,2,3,4].reduce((acc, off) => acc + parseNum(row[s+off]), 0);
-                            weekly.push(sum);
-                        }
-                        res.push({ weekly });
+            const parseHomeCSV = (text) => {
+                // 假設結構: UUID, Name, (MonBig, MonSml), (TueBig, TueSml)... 共 5 組
+                const lines = text.trim().split('\n');
+                const res = [];
+                for(let i=1; i<lines.length; i++) {
+                    const row = lines[i].split(',');
+                    if(row.length < 2) continue;
+                    
+                    const uuid = row[0];
+                    const name = row[1];
+                    const weekly = []; // 0=Mon, 4=Fri
+
+                    // 從第 3 欄 (Index 2) 開始，每 2 欄一組
+                    // Index 2=MonBig, 3=MonSml, 4=TueBig, 5=TueSml...
+                    for(let d=0; d<5; d++) {
+                        const baseIdx = 2 + (d * 2);
+                        const big = parseInt(row[baseIdx]) || 0;
+                        const small = parseInt(row[baseIdx+1]) || 0;
+                        weekly.push({ big, small });
                     }
-                    rawRouteData.value = res;
-                });
+                    res.push({ uuid, name, weekly });
+                }
+                rawHomeData.value = res;
             };
 
-            const fetchHomeCsv = () => {
-                fetch(homeCsvUrl).then(r=>r.text()).then(t => {
-                    const lines = t.trim().split('\n');
-                    const res = [];
-                    // Assume structure: UUID, Nickname, [Mon_DaXin, Mon_JinZhong], [Tue...], ...
-                    for(let i=1; i<lines.length; i++) {
-                        const row = lines[i].split(',');
-                        if(row.length<3) continue;
-                        const weekly = [];
-                        for(let d=0; d<5; d++) { // Mon-Fri (5 days)
-                            const s = 2 + (d*2); // Start col 2. Mon=2,3. Tue=4,5.
-                            // DaXin=0.95, JinZhong=0.5
-                            const daxin = parseNum(row[s]);
-                            const jinzhong = parseNum(row[s+1]);
-                            const dailyKg = (daxin * 0.95) + (jinzhong * 0.5);
-                            weekly.push(dailyKg);
-                        }
-                        // Map Mon-Fri to 0-6 (Sun-Sat) for consistency
-                        // CSV: 0=Mon, 1=Tue...
-                        // App: 0=Sun, 1=Mon...
-                        const fullWeek = [0, weekly[0], weekly[1], weekly[2], weekly[3], weekly[4], 0]; // Sun=0, Sat=0
-                        res.push({ weekly: fullWeek });
-                    }
-                    rawHomeData.value = res;
-                });
-            };
-
-            // 3. Logic
+            // Logic Core
             const milkBankDays = computed(() => {
                 const days = [];
                 const startDate = new Date(); startDate.setHours(0,0,0,0);
                 const endDate = new Date('2026-02-24'); endDate.setHours(0,0,0,0);
-                const diffDays = Math.ceil(Math.abs(endDate - startDate) / (86400000)) + 1;
+                const diffDays = Math.ceil(Math.abs(endDate - startDate)/(1000*3600*24)) + 1;
 
                 let runningStock = 0;
 
@@ -337,57 +335,93 @@
                     const m = String(dObj.getMonth()+1).padStart(2,'0');
                     const d = String(dObj.getDate()).padStart(2,'0');
                     const dateKey = `${y}-${m}-${d}`;
-                    const dayIdx = dObj.getDay();
-                    const dayName = weekDays[dayIdx];
+                    const dayIdx = dObj.getDay(); // 0=Sun
                     
-                    let lunarStr = '-';
-                    try {
-                        const lunar = Lunar.fromSolar(Solar.fromYmd(y, parseInt(m), parseInt(d)));
-                        lunarStr = lunar.getMonthInChinese() + "月" + lunar.getDayInChinese();
-                    } catch(e) {}
+                    // --- 1. 晨間配送 (一般) ---
+                    // 暫停規則: 2026/02/17 - 02/20
+                    const isPausedDate = (dateKey >= '2026-02-17' && dateKey <= '2026-02-20');
+                    let deliveryAM = 0;
+                    let amDetails = [];
 
-                    // 1. Standard Demand
-                    const sheetIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-                    let demandBottles = 0;
-                    rawRouteData.value.forEach(row => {
-                        if(row.weekly[sheetIdx]) demandBottles += row.weekly[sheetIdx];
-                    });
-                    const demand = demandBottles * 0.18;
+                    if (!isPausedDate) {
+                        const sheetIdx = dayIdx === 0 ? 6 : dayIdx - 1; // 對應 CSV 0~6
+                        rawMorningData.value.forEach(row => {
+                            if(row.weekly[sheetIdx] && row.weekly[sheetIdx].bottles > 0) {
+                                const b = row.weekly[sheetIdx].bottles;
+                                deliveryAM += b * 0.18;
+                                amDetails.push({ name: `路線 ${row.id}`, big: 0, small: b, type: 'bottle' }); 
+                            }
+                        });
+                    }
 
-                    // 2. Home Delivery Demand
-                    let homeKg = 0;
-                    rawHomeData.value.forEach(row => {
-                         if(row.weekly[dayIdx]) homeKg += row.weekly[dayIdx];
-                    });
+                    // --- 2. 宅配家庭號 (大新/金中) ---
+                    let deliveryHome = 0;
+                    let homeDetails = [];
+                    // 只算 Mon(1) ~ Fri(5)
+                    if (dayIdx >= 1 && dayIdx <= 5) {
+                        const homeSheetIdx = dayIdx - 1; // 0=Mon
+                        rawHomeData.value.forEach(row => {
+                            const data = row.weekly[homeSheetIdx];
+                            if (data && (data.big > 0 || data.small > 0)) {
+                                const liters = (data.big * 0.95) + (data.small * 0.5);
+                                deliveryHome += liters;
+                                homeDetails.push({ 
+                                    name: row.name, 
+                                    big: data.big, 
+                                    small: data.small 
+                                });
+                            }
+                        });
+                    }
 
-                    // 3. DB Data
+                    // --- Data Retrieval & Overrides ---
                     const dayData = savedData.value[dateKey] || {};
+                    
+                    // Apply Overrides if exist
+                    const finalDeliveryAM = dayData.deliveryAM !== undefined ? dayData.deliveryAM : deliveryAM;
+                    const finalDeliveryHome = dayData.deliveryHome !== undefined ? dayData.deliveryHome : deliveryHome;
+                    
                     const harvestAM = dayData.harvestAM !== undefined ? dayData.harvestAM : defaults.harvestAM;
                     const harvestPM = dayData.harvestPM !== undefined ? dayData.harvestPM : defaults.harvestPM;
                     const adhoc1 = dayData.adhoc1 || 0;
                     const adhoc2 = dayData.adhoc2 || 0;
-                    const adhoc3 = dayData.adhoc3 || 0;
 
-                    let startStock = runningStock;
-                    if(dayData.inventory !== undefined) {
-                        startStock = dayData.inventory;
-                    } else if (i === 0 && dayData.inventory === undefined) {
-                        startStock = 10; 
-                    }
+                    let startStock = (i === 0 && dayData.inventory !== undefined) ? dayData.inventory : runningStock;
+                    if(i === 0 && dayData.inventory === undefined) startStock = 10;
+                    if(dayData.inventory !== undefined) startStock = dayData.inventory;
 
-                    const endStock = startStock + harvestAM + harvestPM - demand - homeKg + adhoc1 + adhoc2 + adhoc3;
+                    // 結餘公式：期初 + 晨收 + 晚收 - 晨配 - 宅配 + 團購(通常為負)
+                    const endStock = startStock + harvestAM + harvestPM - finalDeliveryAM - finalDeliveryHome + adhoc1 + adhoc2;
                     runningStock = endStock;
 
+                    // Lunar
+                    let lunarStr = '-';
+                    try {
+                        const lunar = Lunar.fromSolar(Solar.fromYmd(y, parseInt(m), parseInt(d)));
+                        lunarStr = lunar.getMonthInChinese() + "月" + lunar.getDayInChinese();
+                    } catch(e){}
+
                     days.push({
-                        dateKey, dateStr: `${m}/${d}`, dayName, lunarStr,
+                        dateKey, dateStr: `${m}/${d}`, dayName: weekDays[dayIdx], lunarStr,
                         isWeekend: dayIdx === 0 || dayIdx === 6,
-                        startStock, harvestAM, harvestPM, demand, homeDelivery: homeKg,
-                        adhoc1, adhoc2, adhoc3, endStock,
+                        isPaused: isPausedDate,
+                        startStock, harvestAM, harvestPM,
+                        deliveryAM: finalDeliveryAM,
+                        deliveryHome: finalDeliveryHome,
+                        adhoc1, adhoc2,
+                        endStock,
+                        details: {
+                            deliveryAM: amDetails,
+                            deliveryHome: homeDetails
+                        },
                         isManual: {
                             inventory: dayData.inventory !== undefined,
                             harvestAM: dayData.harvestAM !== undefined,
                             harvestPM: dayData.harvestPM !== undefined,
-                            adhoc1: dayData.adhoc1 !== undefined && dayData.adhoc1 !== 0,
+                            deliveryAM: dayData.deliveryAM !== undefined,
+                            deliveryHome: dayData.deliveryHome !== undefined,
+                            adhoc1: dayData.adhoc1 !== undefined,
+                            adhoc2: dayData.adhoc2 !== undefined
                         }
                     });
                 }
@@ -395,53 +429,78 @@
             });
 
             const todayEndStock = computed(() => milkBankDays.value[0]?.endStock || 0);
-            const todayDemand = computed(() => milkBankDays.value[0]?.demand || 0);
-            const todayHomeDelivery = computed(() => milkBankDays.value[0]?.homeDelivery || 0);
 
-            // 4. Interaction
+            // Modal
             const openInputModal = (field, day) => {
                 inputModal.value.field = field;
                 inputModal.value.dateKey = day.dateKey;
                 inputModal.value.show = true;
                 inputModal.value.dateLabel = `${day.dateStr} ${day.dayName}`;
-                inputModal.value.lunarLabel = `農曆 ${day.lunarStr}`;
-                
-                // Titles
-                const titles = {
-                    inventory: ['期初盤點', '07:00 實際庫存'],
-                    harvestAM: ['晨間收乳', '08:00 實際產出'],
-                    harvestPM: ['晚間收乳', '20:00 實際產出'],
-                    adhoc1: ['團購出貨 1', '輸入負數扣庫存'],
-                    adhoc2: ['團購出貨 2', '輸入負數扣庫存'],
-                    adhoc3: ['團購出貨 3', '輸入負數扣庫存']
-                };
-                inputModal.value.title = titles[field][0];
-                inputModal.value.subtitle = titles[field][1];
+                inputModal.value.isManual = day.isManual[field];
+                inputModal.value.isPaused = false;
+
+                // Set Value & Text
                 inputModal.value.value = day[field];
+                inputModal.value.details = []; // Default empty
+
+                if(field === 'deliveryAM') {
+                    inputModal.value.title = '晨間配送';
+                    inputModal.value.subtitle = '09:00 一般路線 (0.18L/瓶)';
+                    inputModal.value.details = day.details.deliveryAM;
+                    if(day.isPaused) inputModal.value.isPaused = true;
+                } else if(field === 'deliveryHome') {
+                    inputModal.value.title = '宅配家庭號';
+                    inputModal.value.subtitle = '10:00 大新(0.95L) / 金中(0.5L)';
+                    inputModal.value.details = day.details.deliveryHome;
+                } else if(field === 'harvestAM') {
+                    inputModal.value.title = '晨間收乳';
+                    inputModal.value.subtitle = '實際產出量';
+                } else if(field === 'harvestPM') {
+                    inputModal.value.title = '晚間收乳';
+                    inputModal.value.subtitle = '實際產出量';
+                } else if(field.startsWith('adhoc')) {
+                    inputModal.value.title = '團購/臨時出貨';
+                    inputModal.value.subtitle = '請輸入負數 (例如 -5)';
+                } else if(field === 'inventory') {
+                    inputModal.value.title = '期初盤點';
+                    inputModal.value.subtitle = '校正庫存';
+                }
             };
 
-            const openQuickAction = (field) => {
-                if(milkBankDays.value.length > 0) openInputModal(field, milkBankDays.value[0]);
+            const adjustValue = (delta) => {
+                let v = parseFloat(inputModal.value.value) || 0;
+                v += delta;
+                inputModal.value.value = parseFloat(v.toFixed(1));
             };
-
-            const adjustValue = (d) => inputModal.value.value = parseFloat((inputModal.value + d).toFixed(2));
 
             const confirmInput = () => {
                 const { dateKey, field, value } = inputModal.value;
-                saveToCloud(dateKey, field, value);
+                if(!savedData.value[dateKey]) savedData.value[dateKey] = {};
+                savedData.value[dateKey][field] = value;
+                saveToStorage();
                 inputModal.value.show = false;
             };
 
+            const revertToAuto = () => {
+                const { dateKey, field } = inputModal.value;
+                if(savedData.value[dateKey]) {
+                    delete savedData.value[dateKey][field];
+                    // Clean up empty objects
+                    if(Object.keys(savedData.value[dateKey]).length === 0) delete savedData.value[dateKey];
+                    saveToStorage();
+                    inputModal.value.show = false;
+                }
+            };
+
             onMounted(() => {
-                initFirebase();
-                fetchRouteCsv();
-                fetchHomeCsv();
+                loadSavedData();
+                fetchAllData();
             });
 
             return {
-                milkBankDays, todayEndStock, todayDemand, todayHomeDelivery,
-                inputModal, firebaseConnected,
-                openInputModal, openQuickAction, adjustValue, confirmInput, resetData
+                milkBankDays, todayEndStock,
+                inputModal,
+                openInputModal, adjustValue, confirmInput, revertToAuto
             };
         }
     }).mount('#app');
