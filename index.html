@@ -3,90 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>五寮尖 V17.1 便當風格版</title>
+    <title>五寮尖 V18.0 實戰版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.2.37/lunar.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* 核心佈局 */
+        /* 100dvh 鎖定 */
         html, body { 
             height: 100dvh; margin: 0; padding: 0; overflow: hidden;
             background-color: #f8fafc; font-family: 'Noto Sans TC', sans-serif; 
-            touch-action: pan-x; 
+            touch-action: pan-x;
         }
         [v-cloak] { display: none; }
         #app { height: 100%; display: flex; flex-direction: column; }
 
-        /* 表格容器 */
+        /* 表格結構 */
         .table-wrapper {
-            flex: 1; overflow-x: auto; overflow-y: hidden; position: relative;
-            background-color: #fff; display: flex; flex-direction: column;
-            scroll-snap-type: x mandatory;
-            scroll-behavior: smooth; /* 滑動平滑 */
+            flex: 1; overflow-x: auto; overflow-y: hidden;
+            display: flex; flex-direction: column; scroll-snap-type: x mandatory;
+            background: white;
         }
         .milk-table { height: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
         .milk-table th, .milk-table td { 
-            padding: 2px 4px; text-align: center; border-right: 1px solid #f1f5f9; 
-            border-bottom: 1px solid #f1f5f9; white-space: nowrap; font-size: 13px; 
-            position: relative; box-sizing: border-box;
+            padding: 2px 4px; text-align: center; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap; font-size: 13px; position: relative; box-sizing: border-box;
         }
 
-        /* 欄寬設定 */
-        .col-day { width: 28vw; min-width: 90px; scroll-snap-align: start; } 
+        /* 欄寬與凍結 */
+        .col-day { width: 29vw; min-width: 95px; scroll-snap-align: start; transition: background-color 0.3s; }
         .col-header { width: 110px; min-width: 110px; z-index: 50; }
-
-        /* 凍結窗格 */
         .milk-table td:first-child, .milk-table th:first-child {
-            position: sticky; left: 0; z-index: 20; background-color: #fff; 
+            position: sticky; left: 0; z-index: 20; background: white; 
             border-right: 2px solid #e2e8f0; text-align: left; padding-left: 12px; 
             color: #64748b; font-weight: 700;
         }
-        .milk-table thead th { position: sticky; top: 0; z-index: 10; background-color: #fff; border-bottom: 2px solid #e2e8f0; height: 60px; }
-        .milk-table thead th:first-child { z-index: 30; background-color: #fff; }
+        .milk-table thead th { position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #e2e8f0; height: 65px; background: white; }
+        .milk-table thead th:first-child { z-index: 30; }
 
-        /* 樣式與視覺 */
+        /* 視覺樣式 */
         .row-icon { width: 18px; text-align: center; display: inline-block; margin-right: 4px; opacity: 0.6; }
-        .time-label { display: block; font-size: 10px; color: #94a3b8; font-weight: 500; margin-bottom: 1px; }
+        .time-label { display: block; font-size: 10px; color: #94a3b8; font-weight: 500; margin-bottom: 0px; }
         .item-label { font-size: 12px; color: #334155; font-weight: 700; }
-        .sub-label { font-size: 9px; color: #cbd5e1; font-weight: normal; margin-left: 2px; }
-
-        .today-col { background-color: #f0f7ff; }
-        .today-border-l { border-left: 2px solid #3b82f6; }
-        .today-border-r { border-right: 2px solid #3b82f6; }
-        .today-header { background-color: #eff6ff !important; color: #1d4ed8; }
-
-        .num-font { font-family: 'Roboto Mono', monospace; letter-spacing: -0.5px; font-weight: 500; font-size: 15px; }
-        .val-plus { color: #059669; background: #ecfdf5; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
-        .val-minus { color: #2563eb; font-weight: 700; }
-        .val-process { color: #d97706; font-size: 12px; font-weight: 700; }
+        
+        .num-font { font-family: 'Roboto Mono', monospace; font-weight: 500; font-size: 15px; }
+        .val-plus { color: #059669; background: #ecfdf5; padding: 2px 6px; border-radius: 6px; }
+        .val-minus { color: #2563eb; }
+        .val-prep { color: #dc2626; font-weight: 700; } /* 預製顏色 */
         .val-balance { font-size: 18px; font-weight: 900; color: #1e293b; }
-        .info-row td { background-color: #f8fafc; color: #64748b; font-size: 11px; vertical-align: middle; border-top: 2px solid #e2e8f0; height: 50px; }
+        .val-mid-balance { color: #64748b; font-weight: 700; font-size: 14px; background: #f1f5f9; padding: 2px 8px; border-radius: 12px; }
 
-        /* 側邊欄 (Sidebar) */
-        .sidebar-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 60; transition: opacity 0.3s; }
-        .sidebar { 
-            position: fixed; top: 0; bottom: 0; left: 0; width: 85vw; max-width: 320px; 
-            background: #fff; z-index: 70; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 4px 0 24px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+        /* 日期標籤樣式 (高光) */
+        .tag-badge { 
+            display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; 
+            margin-top: 2px; font-weight: bold; color: white;
         }
-        .sidebar.active { transform: translateX(0); }
-
-        /* 抽屜 (Bottom Sheet) */
+        /* 預設顏色類別 */
+        .hl-blue { background-color: #eff6ff; border-top: 3px solid #3b82f6; }
+        .hl-red { background-color: #fef2f2; border-top: 3px solid #ef4444; }
+        .hl-green { background-color: #f0fdf4; border-top: 3px solid #22c55e; }
+        .hl-yellow { background-color: #fefce8; border-top: 3px solid #eab308; }
+        .hl-purple { background-color: #faf5ff; border-top: 3px solid #a855f7; }
+        
+        /* Drawer */
         .drawer-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 40; }
         .drawer-body { 
             position: fixed; bottom: 0; left: 0; right: 0; background: white; z-index: 50; 
             border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom);
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .drawer-body.active { transform: translateY(0); }
-        
-        /* Toast */
+
         .toast {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-100px);
             background: #1e293b; color: white; padding: 10px 20px; border-radius: 30px;
@@ -102,63 +94,17 @@
 
     <header class="bg-white px-4 py-2 border-b border-slate-100 flex-none z-30 flex justify-between items-center h-[55px]">
         <div>
-            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Today Balance</div>
+            <div class="text-[10px] text-slate-400 font-bold uppercase">Today Balance</div>
             <div class="text-2xl font-black text-slate-800 num-font leading-none">
                 {{ todayEndStock.toFixed(1) }} <span class="text-sm text-slate-300">L</span>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button @click="sidebarOpen=true" class="w-9 h-9 bg-slate-50 rounded-full text-slate-500 flex items-center justify-center active:bg-slate-200 transition">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
+        <button @click="sidebarOpen=true" class="w-9 h-9 bg-slate-50 rounded-full text-slate-500 flex items-center justify-center active:bg-slate-200">
+            <i class="fas fa-bars"></i>
+        </button>
     </header>
 
-    <div v-if="sidebarOpen" class="sidebar-mask" @click="sidebarOpen=false"></div>
-    <div class="sidebar" :class="{ 'active': sidebarOpen }">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-            <h2 class="text-lg font-black text-slate-800">選單設定</h2>
-            <button @click="sidebarOpen=false" class="w-8 h-8 rounded-full bg-white text-slate-400 shadow-sm flex items-center justify-center">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="flex-1 overflow-y-auto p-6 space-y-8">
-            <div>
-                <button @click="scrollToToday" class="w-full bg-blue-50 text-blue-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition">
-                    <i class="fas fa-calendar-day"></i> 返回今日
-                </button>
-            </div>
-
-            <div>
-                <div class="flex justify-between items-end mb-4">
-                    <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                        <i class="fas fa-truck text-slate-400"></i> 晨間配送設定
-                    </h3>
-                    <button @click="resetRouteSettings" class="text-xs font-bold text-red-400 underline">重設預設值</button>
-                </div>
-                <div class="space-y-3">
-                    <div v-for="(val, idx) in routeSettings" :key="idx" class="flex items-center gap-3">
-                        <div class="w-8 text-sm font-bold text-slate-400">{{ ['日','一','二','三','四','五','六'][idx] }}</div>
-                        <input type="number" step="0.01" v-model.number="routeSettings[idx]" 
-                            class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-right font-mono font-bold text-slate-700 focus:border-blue-500 outline-none">
-                        <div class="text-xs text-slate-300 w-4">L</div>
-                    </div>
-                </div>
-                <p class="text-[10px] text-slate-400 mt-2 leading-tight">
-                    * 設定每日的「標準配送量」。系統會依據生產排程邏輯（如週五製作週末份）自動對應到正確日期。
-                </p>
-            </div>
-        </div>
-
-        <div class="p-4 border-t border-slate-100">
-            <button @click="saveSettings" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition">
-                儲存設定
-            </button>
-        </div>
-    </div>
-
-    <div class="table-wrapper" ref="tableContainer">
+    <div class="table-wrapper">
         <table class="milk-table">
             <thead>
                 <tr>
@@ -167,11 +113,15 @@
                             <span class="text-xs text-slate-400 font-bold">項目 \ 日期</span>
                         </div>
                     </th>
-                    <th v-for="d in days" :key="d.key" :id="'header-'+d.key" class="col-day" 
-                        :class="{'today-header': d.isToday, 'bg-orange-50': d.isWeekend && !d.isToday, 'today-border-l': d.isToday, 'today-border-r': d.isToday}">
+                    <th v-for="d in days" :key="d.key" class="col-day cursor-pointer" 
+                        :class="[d.colorClass, {'bg-slate-50': !d.colorClass && d.isWeekend}]"
+                        @click="openDateSettings(d)">
                         <div class="flex flex-col items-center justify-center">
                             <span class="text-sm font-black">{{ d.weekDay }}</span>
-                            <span class="text-[10px] opacity-60 font-bold">{{ d.dateStr }}</span>
+                            <span class="text-[10px] opacity-60 font-bold mb-0.5">{{ d.dateStr }}</span>
+                            <div v-if="d.taskLabel" class="tag-badge" :style="{ backgroundColor: d.badgeColor }">
+                                {{ d.taskLabel }}
+                            </div>
                         </div>
                     </th>
                 </tr>
@@ -182,8 +132,7 @@
                         <span class="time-label">07:00</span>
                         <i class="fas fa-cube row-icon text-slate-400"></i><span class="item-label">期初庫存</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('inventory', d)" 
-                        class="num-font text-slate-400 cursor-pointer" :class="getCellClass(d)">
+                    <td v-for="d in days" :key="d.key" @click="edit('inventory', d)" class="num-font text-slate-400 cursor-pointer">
                         {{ d.startStock.toFixed(1) }}
                     </td>
                 </tr>
@@ -193,22 +142,8 @@
                         <span class="time-label">08:00</span>
                         <i class="fas fa-tint row-icon text-emerald-500"></i><span class="item-label">晨間收乳</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('harvestAM', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
+                    <td v-for="d in days" :key="d.key" @click="edit('harvestAM', d)" class="cursor-pointer">
                         <span class="num-font val-plus">+{{ d.harvestAM }}</span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>
-                        <span class="time-label">09:00</span>
-                        <i class="fas fa-truck row-icon text-slate-400"></i><span class="item-label">晨間配送</span>
-                        <div class="sub-label">昨20:00製作</div>
-                    </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('deliveryRoute', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
-                        <span v-if="d.deliveryRoute > 0" class="num-font text-slate-400 font-bold">-{{ d.deliveryRoute.toFixed(1) }}</span>
-                        <span v-else class="text-slate-200">-</span>
                     </td>
                 </tr>
 
@@ -217,46 +152,57 @@
                         <span class="time-label">10:00</span>
                         <i class="fas fa-users row-icon text-blue-500"></i><span class="item-label">家庭宅配</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('checklist', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
+                    <td v-for="d in days" :key="d.key" @click="edit('checklist', d)" class="cursor-pointer">
                         <span v-if="d.deliveryHome > 0" class="num-font val-minus">-{{ d.deliveryHome.toFixed(1) }}</span>
                         <span v-else class="text-slate-200">-</span>
+                    </td>
+                </tr>
+
+                <tr class="bg-slate-50/50">
+                    <td>
+                        <span class="time-label">12:00</span>
+                        <i class="fas fa-clipboard-check row-icon text-slate-500"></i><span class="item-label text-slate-600">午間盤點</span>
+                    </td>
+                    <td v-for="d in days" :key="d.key" class="text-center">
+                        <span class="num-font val-mid-balance">{{ d.noonStock.toFixed(1) }}</span>
                     </td>
                 </tr>
 
                 <tr>
                     <td>
                         <span class="time-label">13:00</span>
-                        <i class="fas fa-blender row-icon text-amber-500"></i><span class="item-label">加工製作</span>
+                        <i class="fas fa-blender row-icon text-amber-500"></i><span class="item-label">加工/快閃</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('process', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
-                        <div v-if="d.process.vol > 0" class="val-process">-{{ d.process.vol.toFixed(1) }}</div>
-                        <span v-else class="text-slate-200">-</span>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>
-                        <span class="time-label">14:00</span>
-                        <i class="fas fa-bullhorn row-icon text-pink-500"></i><span class="item-label">快閃活動</span>
-                    </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('flash', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
-                        <div v-if="d.flash.vol > 0" class="text-xs font-bold text-pink-500">-{{ d.flash.vol }}</div>
-                        <span v-else class="text-slate-200">-</span>
+                    <td v-for="d in days" :key="d.key" @click="edit('process', d)" class="cursor-pointer">
+                        <div v-if="d.process.vol > 0" class="text-amber-600 font-bold text-xs">-{{ d.process.vol.toFixed(1) }}</div>
+                        <div v-if="d.flash.vol > 0" class="text-pink-500 font-bold text-xs">-{{ d.flash.vol }}</div>
+                        <span v-if="d.process.vol===0 && d.flash.vol===0" class="text-slate-200">-</span>
                     </td>
                 </tr>
-
-                <tr>
+                 <tr>
                     <td>
                         <span class="time-label">15:00</span>
-                        <i class="fas fa-clipboard-list row-icon text-purple-500"></i><span class="item-label">臨時/團購</span>
+                        <i class="fas fa-plus-circle row-icon text-purple-500"></i><span class="item-label">臨時/團購</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('adhoc', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
+                    <td v-for="d in days" :key="d.key" @click="edit('adhoc', d)" class="cursor-pointer">
                         <div v-if="d.adhoc.total > 0 || d.group.vol > 0" class="text-xs font-bold text-purple-600">
                             -{{ (d.adhoc.total + d.group.vol).toFixed(1) }}
+                        </div>
+                        <span v-else class="text-slate-200">-</span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <span class="time-label">19:00</span>
+                        <i class="fas fa-box-open row-icon text-red-500"></i><span class="item-label">隔日晨配</span>
+                    </td>
+                    <td v-for="d in days" :key="d.key" @click="edit('routePrep', d)" class="cursor-pointer bg-red-50/30">
+                        <div v-if="d.routePrep > 0">
+                            <span class="num-font val-prep">-{{ d.routePrep.toFixed(1) }}</span>
+                            <div v-if="d.weekDay === '五'" class="text-[9px] text-red-400 font-normal transform scale-90 origin-center mt-0.5">
+                                六:{{ d.nextDayRoute }} + 日:{{ d.afterNextRoute }}
+                            </div>
                         </div>
                         <span v-else class="text-slate-200">-</span>
                     </td>
@@ -267,45 +213,26 @@
                         <span class="time-label">20:00</span>
                         <i class="fas fa-moon row-icon text-indigo-500"></i><span class="item-label">晚間收乳</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('harvestPM', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
+                    <td v-for="d in days" :key="d.key" @click="edit('harvestPM', d)" class="cursor-pointer">
                         <span class="num-font val-plus">+{{ d.harvestPM }}</span>
                     </td>
                 </tr>
 
-                <tr>
-                    <td>
-                        <span class="time-label">--:--</span>
-                        <i class="fas fa-balance-scale row-icon text-slate-400"></i><span class="item-label">調節損耗</span>
-                    </td>
-                    <td v-for="d in days" :key="d.key" @click="edit('variance', d)" 
-                        class="cursor-pointer" :class="getCellClass(d)">
-                        <span v-if="d.variance.val !== 0" class="text-xs font-bold" :class="d.variance.val>0?'text-green-600':'text-red-500'">
-                            {{ d.variance.val>0?'+':'' }}{{ d.variance.val }}
-                        </span>
-                        <span v-else class="text-slate-100">-</span>
-                    </td>
-                </tr>
-
-                <tr style="height: 65px;">
+                <tr style="height: 60px;">
                     <td style="background-color: #f8fafc;">
                         <span class="time-label">22:00</span>
                         <i class="fas fa-flag row-icon text-slate-800"></i><span class="item-label">本日結餘</span>
                     </td>
-                    <td v-for="d in days" :key="d.key" class="num-font val-balance" :class="[getCellClass(d), getStockTextClass(d.endStock)]">
+                    <td v-for="d in days" :key="d.key" class="num-font val-balance">
                         {{ d.endStock.toFixed(1) }}
                     </td>
                 </tr>
 
-                <tr class="info-row">
-                    <td>
-                        <span class="item-label text-slate-500">參考資訊</span>
-                        <div class="sub-label">總瓶數統計</div>
-                    </td>
-                    <td v-for="d in days" :key="d.key" :class="getCellClass(d)">
-                        <div v-if="d.bottleInfo.big > 0 || d.bottleInfo.small > 0" class="flex flex-col gap-0.5">
-                            <span class="font-bold text-slate-600">大: {{ d.bottleInfo.big }}</span>
-                            <span class="font-bold text-slate-400">小: {{ d.bottleInfo.small }}</span>
+                <tr style="height: 45px; background: #f8fafc;">
+                    <td class="text-xs text-slate-400 pl-3">總瓶數參考</td>
+                    <td v-for="d in days" :key="d.key" class="text-[10px] text-center text-slate-500">
+                        <div v-if="d.bottleInfo.big>0 || d.bottleInfo.small>0">
+                            大:{{d.bottleInfo.big}} 小:{{d.bottleInfo.small}}
                         </div>
                     </td>
                 </tr>
@@ -316,19 +243,48 @@
     <div v-if="drawer.show" class="drawer-mask" @click="drawer.show=false"></div>
     <div class="drawer-body" :class="{ 'active': drawer.show }">
         <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-4"></div>
-        <div class="px-6 pb-6">
+        
+        <div v-if="drawer.mode === 'settings'" class="px-6 pb-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">{{ drawer.dateLabel }} 設定</h3>
+            
+            <div class="mb-6">
+                <label class="text-xs font-bold text-slate-400 mb-2 block">高光標記顏色</label>
+                <div class="flex justify-between gap-2">
+                    <button v-for="c in colorOptions" :key="c.val" @click="setDateColor(c.val)"
+                        class="h-12 flex-1 rounded-xl border-2 transition-all"
+                        :class="[c.bg, c.border, drawer.val === c.val ? 'ring-2 ring-slate-400 scale-105' : 'opacity-70']">
+                    </button>
+                    <button @click="setDateColor('')" class="h-12 w-12 rounded-xl border-2 border-slate-200 flex items-center justify-center text-slate-400">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs font-bold text-slate-400 mb-2 block">主要任務標籤</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button v-for="t in taskOptions" :key="t" @click="setDateTask(t)"
+                        class="py-3 rounded-xl border font-bold text-sm transition-colors"
+                        :class="drawer.text === t ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'">
+                        {{ t }}
+                    </button>
+                </div>
+                <input v-model="drawer.text" type="text" placeholder="自訂標籤..." class="mt-3 w-full p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+            </div>
+             <button @click="saveDateSettings" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-bold">儲存設定</button>
+        </div>
+
+        <div v-else class="px-6 pb-6">
             <div class="flex justify-between items-end mb-6">
                 <div>
                     <h3 class="text-2xl font-black text-slate-800">{{ drawer.title }}</h3>
                     <p class="text-sm text-slate-400 font-bold mt-1">{{ drawer.dateLabel }}</p>
                 </div>
-                <button @click="save" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-slate-200 active:scale-95 transition">
-                    確認儲存
-                </button>
+                <button @click="save" class="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-slate-200 active:scale-95 transition">確認</button>
             </div>
 
             <div class="space-y-6">
-                <div v-if="['inventory','harvestAM','harvestPM','deliveryRoute','flash','variance'].includes(drawer.type)" class="flex items-center gap-4">
+                <div v-if="['inventory','harvestAM','harvestPM','routePrep','flash'].includes(drawer.type)" class="flex items-center gap-4">
                     <button @click="adj(-1)" class="w-16 h-16 bg-slate-100 rounded-2xl text-2xl font-bold text-slate-600 active:bg-slate-200">-</button>
                     <div class="flex-1">
                         <input v-model.number="drawer.val" type="number" step="0.1" class="w-full text-center text-6xl font-black text-slate-800 focus:outline-none bg-transparent">
@@ -336,357 +292,192 @@
                     </div>
                     <button @click="adj(1)" class="w-16 h-16 bg-slate-100 rounded-2xl text-2xl font-bold text-slate-600 active:bg-slate-200">+</button>
                 </div>
-                
-                <div v-if="['flash','variance'].includes(drawer.type)">
-                    <input v-model="drawer.text" type="text" placeholder="輸入備註 / 地點 / 原因" class="w-full bg-slate-50 p-4 rounded-xl text-lg font-bold border border-slate-100 focus:border-blue-500 outline-none">
-                </div>
 
-                <div v-if="drawer.type === 'process'" class="grid grid-cols-2 gap-4">
-                    <button @click="drawer.pSmall++" class="bg-amber-50 border-2 border-amber-100 p-6 rounded-3xl active:bg-amber-100 transition relative overflow-hidden">
-                        <span class="block text-sm font-bold text-amber-800 mb-2">小饅頭 (3.7L)</span>
-                        <span class="block text-5xl font-black text-amber-600">{{ drawer.pSmall }}</span>
-                        <i class="fas fa-plus absolute bottom-4 right-4 text-amber-200"></i>
-                    </button>
-                    <button @click="drawer.pBig++" class="bg-orange-50 border-2 border-orange-100 p-6 rounded-3xl active:bg-orange-100 transition relative overflow-hidden">
-                        <span class="block text-sm font-bold text-orange-800 mb-2">大饅頭 (1.3L)</span>
-                        <span class="block text-5xl font-black text-orange-600">{{ drawer.pBig }}</span>
-                        <i class="fas fa-plus absolute bottom-4 right-4 text-orange-200"></i>
-                    </button>
-                    <div class="col-span-2 flex justify-between items-center px-2">
-                        <button @click="drawer.pSmall=0;drawer.pBig=0" class="text-sm text-red-400 font-bold underline">重置數量</button>
-                        <div class="text-xl font-bold text-slate-800">合計: <span class="text-amber-600 text-2xl">{{ ((drawer.pSmall*3.7)+(drawer.pBig*1.3)).toFixed(1) }}</span> L</div>
-                    </div>
-                </div>
-
-                <div v-if="drawer.type === 'adhoc'" class="space-y-4">
-                    <div class="flex gap-4">
-                        <div class="flex-1 bg-purple-50 p-4 rounded-2xl flex flex-col items-center">
-                            <span class="text-xs font-bold text-purple-800 mb-1">大 (0.95)</span>
-                            <div class="flex items-center gap-3">
-                                <button @click="drawer.adBig=Math.max(0,drawer.adBig-1)" class="w-8 h-8 bg-white rounded-full shadow font-bold text-purple-600">-</button>
-                                <span class="text-2xl font-black text-purple-800">{{ drawer.adBig }}</span>
-                                <button @click="drawer.adBig++" class="w-8 h-8 bg-white rounded-full shadow font-bold text-purple-600">+</button>
-                            </div>
-                        </div>
-                        <div class="flex-1 bg-purple-50 p-4 rounded-2xl flex flex-col items-center">
-                            <span class="text-xs font-bold text-purple-800 mb-1">小 (0.5)</span>
-                            <div class="flex items-center gap-3">
-                                <button @click="drawer.adSmall=Math.max(0,drawer.adSmall-1)" class="w-8 h-8 bg-white rounded-full shadow font-bold text-purple-600">-</button>
-                                <span class="text-2xl font-black text-purple-800">{{ drawer.adSmall }}</span>
-                                <button @click="drawer.adSmall++" class="w-8 h-8 bg-white rounded-full shadow font-bold text-purple-600">+</button>
-                            </div>
-                        </div>
-                    </div>
+                <div v-if="drawer.type === 'routePrep' && drawer.isFriday" class="bg-red-50 p-4 rounded-xl flex justify-around text-center">
                     <div>
-                         <label class="text-xs font-bold text-slate-400 ml-1">團購/特殊 (L)</label>
-                         <input v-model.number="drawer.adCustom" type="number" class="w-full bg-slate-50 p-4 rounded-xl text-xl font-bold border border-slate-100 mt-1">
+                        <div class="text-xs text-red-400 mb-1">週六用量</div>
+                        <div class="text-xl font-black text-red-600">{{ drawer.nextRoute }}</div>
+                        <button @click="drawer.val = drawer.nextRoute" class="text-[10px] bg-white border px-2 py-1 rounded mt-1">帶入</button>
                     </div>
-                 </div>
-
-                <div v-if="drawer.type === 'checklist'" class="space-y-2 max-h-[40vh] overflow-y-auto">
-                    <div v-if="drawer.list.length===0" class="text-center py-8 text-slate-400">今日無配送</div>
-                    <div v-for="(item, idx) in drawer.list" :key="idx" class="flex justify-between items-center p-3 border-b border-slate-50">
-                        <span class="font-bold text-slate-700">{{ item.name }} <span class="text-xs font-normal text-slate-400 ml-1">{{ item.big }}大 {{ item.small }}小</span></span>
-                        <button @click="toggleStatus(idx)" class="w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all"
-                            :class="item.status==='done'?'bg-blue-500 border-blue-500 text-white':'border-slate-200 text-slate-300'">
-                            <i class="fas fa-check"></i>
-                        </button>
+                    <div class="text-red-300 text-2xl font-light">+</div>
+                    <div>
+                        <div class="text-xs text-red-400 mb-1">週日用量</div>
+                        <div class="text-xl font-black text-red-600">{{ drawer.afterNextRoute }}</div>
+                         <button @click="drawer.val = drawer.afterNextRoute" class="text-[10px] bg-white border px-2 py-1 rounded mt-1">帶入</button>
+                    </div>
+                    <div class="border-l pl-4 flex items-center">
+                         <button @click="drawer.val = drawer.nextRoute + drawer.afterNextRoute" class="bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold">帶入合計</button>
                     </div>
                 </div>
-
+                
+                <div v-if="drawer.type === 'process'" class="grid grid-cols-2 gap-4">
+                    <button @click="drawer.pSmall++" class="bg-amber-50 p-6 rounded-3xl active:bg-amber-100"><span class="block text-sm font-bold text-amber-800">小 (3.7L)</span><span class="block text-4xl font-black text-amber-600">{{ drawer.pSmall }}</span></button>
+                    <button @click="drawer.pBig++" class="bg-orange-50 p-6 rounded-3xl active:bg-orange-100"><span class="block text-sm font-bold text-orange-800">大 (1.3L)</span><span class="block text-4xl font-black text-orange-600">{{ drawer.pBig }}</span></button>
+                    <div class="col-span-2 text-center text-xl font-bold">合計: {{ ((drawer.pSmall*3.7)+(drawer.pBig*1.3)).toFixed(1) }} L <button @click="drawer.pSmall=0;drawer.pBig=0" class="text-xs text-red-400 ml-2">重置</button></div>
+                </div>
+                 <div v-if="drawer.type === 'checklist'" class="space-y-2 max-h-[40vh] overflow-y-auto">
+                    <div v-for="(item, idx) in drawer.list" :key="idx" class="flex justify-between items-center p-3 border-b border-slate-50">
+                        <span class="font-bold text-slate-700">{{ item.name }} <span class="text-xs text-slate-400">{{ item.big }}大 {{ item.small }}小</span></span>
+                        <button @click="item.status=item.status==='done'?'skip':'done'" class="w-8 h-8 rounded-full border flex items-center justify-center" :class="item.status==='done'?'bg-blue-500 text-white':'text-slate-300'"><i class="fas fa-check"></i></button>
+                    </div>
+                </div>
+                 <div v-if="drawer.type === 'adhoc'" class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="flex-1 bg-purple-50 p-4 rounded-2xl text-center"><span class="text-xs text-purple-800">大 (0.95)</span><div class="flex justify-center gap-2 mt-2"><button @click="drawer.adBig--" class="text-purple-400">-</button><span class="text-2xl font-black text-purple-800">{{drawer.adBig}}</span><button @click="drawer.adBig++" class="text-purple-400">+</button></div></div>
+                         <div class="flex-1 bg-purple-50 p-4 rounded-2xl text-center"><span class="text-xs text-purple-800">小 (0.5)</span><div class="flex justify-center gap-2 mt-2"><button @click="drawer.adSmall--" class="text-purple-400">-</button><span class="text-2xl font-black text-purple-800">{{drawer.adSmall}}</span><button @click="drawer.adSmall++" class="text-purple-400">+</button></div></div>
+                    </div>
+                    <input v-model.number="drawer.adCustom" type="number" placeholder="團購/特殊 (L)" class="w-full bg-slate-50 p-3 rounded-xl font-bold">
+                 </div>
             </div>
         </div>
     </div>
 
-    <div class="toast" :class="{ 'show': toast.show }">
-        <i class="fas fa-check-circle text-emerald-400"></i> {{ toast.msg }}
-    </div>
-
+    <div class="toast" :class="{ 'show': toast.show }"><i class="fas fa-check-circle text-emerald-400"></i> {{ toast.msg }}</div>
 </div>
 
 <script>
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyB6D9vh6J2mdnjz2VXEVe99oi7oLF-irFo",
-        authDomain: "crm-ts-1225-001.firebaseapp.com",
-        databaseURL: "https://crm-ts-1225-001-default-rtdb.firebaseio.com",
-        projectId: "crm-ts-1225-001",
-        storageBucket: "crm-ts-1225-001.firebasestorage.app",
-        messagingSenderId: "925760221722",
-        appId: "1:925760221722:web:1aeda0b82f1f16b8dcd7a3"
-    };
-
+    const { createApp, ref, computed, onMounted } = Vue;
+    const firebaseConfig = { apiKey: "AIzaSyB6D9vh6J2mdnjz2VXEVe99oi7oLF-irFo", authDomain: "crm-ts-1225-001.firebaseapp.com", databaseURL: "https://crm-ts-1225-001-default-rtdb.firebaseio.com", projectId: "crm-ts-1225-001", storageBucket: "crm-ts-1225-001.firebasestorage.app", messagingSenderId: "925760221722", appId: "1:925760221722:web:1aeda0b82f1f16b8dcd7a3" };
     const CSV_ROUTE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=216467280&single=true&output=csv';
     const CSV_HOME = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQF9dZUNtfJjbPIf4_3wvrJoVIv7WxGrXKEit9V0ou25BA9L1lMCEjqykH41p3f2MZc2b02nMLJXnrw/pub?gid=59343971&single=true&output=csv';
 
     createApp({
         setup() {
             firebase.initializeApp(firebaseConfig);
-            const db = firebase.database().ref('milkBankV15');
-            const settingsRef = firebase.database().ref('milkBankSettings');
-            
-            const rawRoute = ref([0,0,0,0,0,0,0]); // 0=Sun, 1=Mon...
-            const rawHome = ref([]);
-            const savedData = ref({});
-            const routeSettings = ref([0,0,0,0,0,0,0]); // User defined route values
-            const drawer = ref({ show:false, type:'', title:'', key:'', dateLabel:'', val:0, text:'', pSmall:0, pBig:0, adBig:0, adSmall:0, adCustom:0, list:[] });
+            const db = firebase.database().ref('milkBankV18'); // New Version Node
+            const rawRoute = ref([]); const rawHome = ref([]); const savedData = ref({});
+            const drawer = ref({ show:false, mode:'', type:'', key:'', val:0 });
             const toast = ref({ show:false, msg:'' });
-            const sidebarOpen = ref(false);
-            const tableContainer = ref(null);
-
             const START = new Date('2026-02-04');
             const WEEK = ['日','一','二','三','四','五','六'];
-            const todayKey = new Date().toISOString().split('T')[0];
+            
+            const colorOptions = [
+                { val:'blue', bg:'bg-blue-50', border:'border-blue-200' },
+                { val:'red', bg:'bg-red-50', border:'border-red-200' },
+                { val:'green', bg:'bg-green-50', border:'border-green-200' },
+                { val:'yellow', bg:'bg-yellow-50', border:'border-yellow-200' },
+                { val:'purple', bg:'bg-purple-50', border:'border-purple-200' }
+            ];
+            const taskOptions = ['公休日', '快閃日', '團購日', '庫存處理', '送貨日', '盤點日'];
 
             onMounted(async () => {
-                try {
-                    const [r1, r2] = await Promise.all([fetch(CSV_ROUTE).then(x=>x.text()), fetch(CSV_HOME).then(x=>x.text())]);
-                    parseRoute(r1); parseHome(r2);
-                    
-                    // Listen for Data
-                    db.on('value', snap => { savedData.value = snap.val()?.days || {}; });
-                    
-                    // Listen for Settings
-                    settingsRef.child('routeConfig').on('value', snap => {
-                        const val = snap.val();
-                        if (val) {
-                            routeSettings.value = val;
-                        } else {
-                            // Default init if no settings
-                            resetRouteSettings(false);
-                        }
-                    });
-
-                    // Initial Scroll to Today
-                    setTimeout(scrollToToday, 1000);
-                } catch(e) { console.error(e); }
+                const [r1, r2] = await Promise.all([fetch(CSV_ROUTE).then(x=>x.text()), fetch(CSV_HOME).then(x=>x.text())]);
+                parseRoute(r1); parseHome(r2);
+                db.on('value', s => savedData.value = s.val()?.days || {});
             });
 
-            // 檢查是否為暫停服務日 (2026/2/17 - 2/19)
-            const isSuspendedDate = (d) => {
-                const s = d.toISOString().split('T')[0];
-                return s >= '2026-02-17' && s <= '2026-02-19';
-            };
-
             const days = computed(() => {
-                let stock = 0;
-                const res = [];
+                let stock = 0; const res = [];
                 for(let i=0; i<30; i++) {
-                    const currentD = new Date(START); currentD.setDate(START.getDate()+i);
-                    const y=currentD.getFullYear(), m=currentD.getMonth()+1, dd=currentD.getDate();
-                    const key = `${y}-${m}-${dd}`;
-                    const iso = currentD.toISOString().split('T')[0];
-                    const wIdx = currentD.getDay();
+                    const d = new Date(START); d.setDate(START.getDate()+i);
+                    const y=d.getFullYear(), m=d.getMonth()+1, dd=d.getDate();
+                    const key = `${y}-${m}-${dd}`; const wIdx = d.getDay();
                     const s = savedData.value[key] || {};
                     
-                    // --- 晨間配送邏輯 (Route Logic) ---
-                    let route = 0;
-                    if(s.deliveryRoute !== undefined) {
-                        route = s.deliveryRoute;
-                    } else {
-                        // 根據製作排程計算需求
-                        // 規則：前一晚20:00製作。
-                        // 週五做: 週六+週日
-                        // 週六做: 0 (休息)
-                        // 週日做: 週一
-                        // 週一~四做: 隔日
-                        let targetDays = [];
-                        
-                        if (wIdx === 5) { // Friday -> Preps for Sat & Sun
-                            const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
-                            const d2 = new Date(currentD); d2.setDate(currentD.getDate() + 2);
-                            targetDays.push(d1, d2);
-                        } else if (wIdx === 6) { // Saturday -> Preps nothing
-                            // 0
-                        } else if (wIdx === 0) { // Sunday -> Preps for Monday
-                             const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
-                             targetDays.push(d1);
-                        } else { // Mon-Thu -> Preps for Next Day
-                             const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
-                             targetDays.push(d1);
-                        }
-
-                        targetDays.forEach(targetDate => {
-                            if (!isSuspendedDate(targetDate)) {
-                                route += (routeSettings.value[targetDate.getDay()] || 0);
-                            }
-                        });
-                    }
-                    
-                    // --- 家庭宅配邏輯 (Home Logic) ---
-                    let home = 0;
-                    let actList = [];
+                    // Home Delivery
+                    let home = 0; let bInfo = { big:0, small:0 };
+                    const defList = (wIdx>=1 && wIdx<=5) ? (rawHome.value[wIdx-1]||[]) : [];
+                    const actList = s.customList || defList;
                     const chk = s.checklist || {};
-                    let bottleInfo = { big: 0, small: 0 };
-
-                    // 取得當日基本清單
-                    const getListForDay = (dayIdx) => (dayIdx>=1 && dayIdx<=5) ? (rawHome.value[dayIdx-1]||[]) : [];
-                    
-                    if (s.customList) {
-                        actList = s.customList;
-                    } else {
-                        // Shift Logic: Monday's orders done on Sunday.
-                        if (wIdx === 0) { // Sunday: Include Sunday(if any) + Monday
-                            const sundayList = getListForDay(0); // Usually empty
-                            const mondayList = getListForDay(1);
-                            actList = [...sundayList, ...mondayList];
-                        } else if (wIdx === 1) { // Monday: Empty (done on Sunday)
-                            actList = [];
-                        } else { // Tue-Sat: Standard
-                            actList = getListForDay(wIdx);
-                        }
-                    }
-
-                    actList.forEach(item => {
-                        const st = chk[item.uuid] || 'done';
-                        const fac = st==='split'?0.5 : (st==='done'?1:0);
-                        home += ((item.big*0.95)+(item.small*0.5)) * fac;
-                         if (st !== 'skip') {
-                            bottleInfo.big += item.big;
-                            bottleInfo.small += item.small;
+                    actList.forEach(it => {
+                        const st = chk[it.uuid] || 'done';
+                        if(st!=='skip') {
+                             home += ((it.big*0.95)+(it.small*0.5)) * (st==='split'?0.5:1);
+                             bInfo.big+=it.big; bInfo.small+=it.small;
                         }
                     });
 
+                    // Inputs
                     const hAM = s.harvestAM ?? 13;
                     const hPM = s.harvestPM ?? 15;
                     const flash = s.flash || { vol:0, loc:'' };
                     const process = s.process || { vol:0 };
                     const adhoc = s.adhoc || { total:0, big:0, small:0, custom:0 };
-                    const group = s.group || { vol:0, note:'' };
-                    const vari = s.variance || { val:0, note:'' };
+                    const group = s.group || { vol:0 };
+
+                    // Route Prep (The new logic: Default to Tomorrow's route amount)
+                    // rawRoute index: today is wIdx. Tomorrow is (wIdx+1)%7.
+                    // But we need to be careful with array mapping. rawRoute[0] is Sunday.
+                    const nextDayIdx = (wIdx + 1) % 7;
+                    let defaultPrep = (rawRoute.value[nextDayIdx] || 0) * 0.18;
+                    let rPrep = s.routePrep !== undefined ? s.routePrep : defaultPrep;
 
                     if(i===0 && s.inventory===undefined) stock = 10;
                     if(s.inventory !== undefined) stock = s.inventory;
                     
-                    // Balance Calculation
-                    const end = stock + hAM + hPM - route - home - flash.vol - process.vol - adhoc.total - group.vol + vari.val;
+                    // Noon Calc
+                    const noon = stock + hAM - home;
+
+                    const end = stock + hAM + hPM - home - flash.vol - process.vol - adhoc.total - group.vol - rPrep;
                     stock = end;
 
+                    // Badges
+                    const colorMap = { blue:'hl-blue', red:'hl-red', green:'hl-green', yellow:'hl-yellow', purple:'hl-purple' };
+                    const badgeColors = { blue:'#3b82f6', red:'#ef4444', green:'#22c55e', yellow:'#ca8a04', purple:'#a855f7' };
+
                     res.push({
-                        key, dateStr:`${m}/${dd}`, weekDay: WEEK[wIdx],
-                        isWeekend: wIdx===0||wIdx===6, isToday: iso===todayKey,
-                        startStock: s.inventory!==undefined ? s.inventory : (i===0?10:res[i-1].endStock),
-                        harvestAM: hAM, harvestPM: hPM, deliveryRoute: route, deliveryHome: home,
-                        flash, process, adhoc, group, variance: vari, endStock: end,
-                        bottleInfo,
-                        rawHomeList: actList
+                        key, dateStr:`${m}/${dd}`, weekDay: WEEK[wIdx], isWeekend: wIdx===0||wIdx===6,
+                        startStock: s.inventory!==undefined?s.inventory:(i===0?10:res[i-1].endStock),
+                        harvestAM: hAM, harvestPM: hPM, deliveryHome: home,
+                        process, flash, adhoc, group, routePrep: rPrep,
+                        noonStock: noon, endStock: end, bottleInfo: bInfo, rawHomeList: actList,
+                        // Helper for Friday
+                        nextDayRoute: ((rawRoute.value[(wIdx+1)%7]||0)*0.18).toFixed(1),
+                        afterNextRoute: ((rawRoute.value[(wIdx+2)%7]||0)*0.18).toFixed(1),
+                        // Settings
+                        colorClass: colorMap[s.color] || '',
+                        badgeColor: badgeColors[s.color] || '#64748b',
+                        taskLabel: s.taskLabel
                     });
                 }
                 return res;
             });
 
-            const todayEndStock = computed(() => days.value.find(d => d.isToday)?.endStock || 0);
-
-            // --- Actions ---
-
-            const scrollToToday = () => {
-                sidebarOpen.value = false;
-                nextTick(() => {
-                    const todayEl = document.querySelector('.today-header');
-                    if(todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                });
-            };
-
-            const resetRouteSettings = (saveToDb = true) => {
-                // Default logic: raw CSV value * 0.18, rounded to 2 decimals
-                routeSettings.value = rawRoute.value.map(v => parseFloat((v * 0.18).toFixed(2)));
-                if(saveToDb) toast.value = {show:true, msg:'已重設為預設值 (未儲存)'};
-            };
-
-            const saveSettings = () => {
-                settingsRef.child('routeConfig').set(routeSettings.value).then(() => {
-                    toast.value = {show:true, msg:'設定已儲存'};
-                    sidebarOpen.value = false;
-                });
-            };
-
             const edit = (type, d) => {
-                drawer.value.show = true;
-                drawer.value.type = type;
-                drawer.value.key = d.key;
-                drawer.value.dateLabel = `${d.dateStr} ${d.weekDay}`;
-                drawer.value.title = getTitle(type);
-
-                if(type==='adhoc') {
-                    const a = d.adhoc;
-                    drawer.value.adBig = a.big||0; drawer.value.adSmall = a.small||0; drawer.value.adCustom = a.custom||0;
-                } else if (type==='process') {
-                    drawer.value.pSmall=0; drawer.value.pBig=0;
-                } else if (type==='checklist') {
-                    drawer.value.list = d.rawHomeList.map(i => ({...i, status: (savedData.value[d.key]||{}).checklist?.[i.uuid]||'done'}));
-                } else if (['flash','variance'].includes(type)) {
-                     const field = type==='flash'?'flash':'variance';
-                     const noteField = type==='flash'?'loc':'note';
-                     drawer.value.val = d[field].val || 0; 
-                     drawer.value.text = d[field][noteField];
-                } else {
-                    drawer.value.val = d[type];
+                drawer.value = { show:true, mode:'input', type, key:d.key, dateLabel:`${d.dateStr} ${d.weekDay}`, title:getTitle(type), val:d[type], 
+                                 // Context data
+                                 isFriday: d.weekDay==='五', nextRoute:Number(d.nextDayRoute), afterNextRoute:Number(d.afterNextRoute) };
+                
+                // Load sub-values
+                if(type==='process') { drawer.value.pSmall=0; drawer.value.pBig=0; }
+                if(type==='adhoc') { drawer.value.adBig=d.adhoc.big||0; drawer.value.adSmall=d.adhoc.small||0; drawer.value.adCustom=d.adhoc.custom||0; }
+                if(type==='checklist') { 
+                    const chk = (savedData.value[d.key]||{}).checklist || {};
+                    drawer.value.list = d.rawHomeList.map(i=>({...i, status:chk[i.uuid]||'done'}));
                 }
+            };
+
+            const openDateSettings = (d) => {
+                const s = savedData.value[d.key] || {};
+                drawer.value = { show:true, mode:'settings', key:d.key, dateLabel:`${d.dateStr} ${d.weekDay}`, val:s.color, text:s.taskLabel };
             };
 
             const save = () => {
-                const { key, type, val, text, adBig, adSmall, adCustom, pSmall, pBig } = drawer.value;
-                const path = `days/${key}`;
-                const up = {};
-
-                if(type==='adhoc') {
-                    up[`${path}/adhoc`] = { total: (adBig*0.95)+(adSmall*0.5)+adCustom, big: adBig, small: adSmall, custom: adCustom };
-                } else if(type==='process') {
-                    const curr = (savedData.value[key]?.process?.vol || 0);
-                    up[`${path}/process`] = { vol: curr + (pSmall*3.7)+(pBig*1.3) };
-                } else if(type==='checklist') {
-                    const map = {};
-                    drawer.value.list.forEach(i => map[i.uuid] = i.status);
-                    up[`${path}/checklist`] = map;
-                } else if(['flash','variance'].includes(type)) {
-                    const field = type; const noteField = type==='flash' ? 'loc' : 'note';
-                    up[`${path}/${field}`] = { val: Number(val), [noteField]: text || '', vol: Number(val) };
-                } else {
-                    up[`${path}/${type}`] = Number(val);
-                }
-
-                db.update(up).then(() => {
-                    toast.value = {show:true, msg:'儲存成功'};
-                    setTimeout(()=>toast.value.show=false, 2000);
-                    drawer.value.show = false;
-                });
+                const { key, type, val, adBig, adSmall, adCustom, pSmall, pBig } = drawer.value;
+                const path = `days/${key}`; const up = {};
+                if(type==='adhoc') up[`${path}/adhoc`] = { total:(adBig*0.95)+(adSmall*0.5)+adCustom, big:adBig, small:adSmall, custom:adCustom };
+                else if(type==='process') { const curr=(savedData.value[key]?.process?.vol||0); up[`${path}/process`] = { vol:curr+(pSmall*3.7)+(pBig*1.3) }; }
+                else if(type==='checklist') { const m={}; drawer.value.list.forEach(i=>m[i.uuid]=i.status); up[`${path}/checklist`]=m; }
+                else if(type==='flash') { const f=savedData.value[key]?.flash||{}; up[`${path}/flash`] = { vol:val, loc:f.loc||'' }; } 
+                else up[`${path}/${type}`] = Number(val);
+                
+                db.update(up).then(()=>{ toast.value={show:true,msg:'儲存成功'}; setTimeout(()=>toast.value.show=false,1500); drawer.value.show=false; });
             };
 
-            const toggleStatus = (idx) => { const it = drawer.value.list[idx]; it.status = it.status==='done' ? 'skip' : 'done'; };
-            const adj = (n) => drawer.value.val = parseFloat((drawer.value.val+n).toFixed(1));
-            const getTitle = (t) => ({inventory:'期初庫存',harvestAM:'晨間收乳',harvestPM:'晚間收乳',deliveryRoute:'晨間配送',checklist:'家庭號配送',flash:'快閃活動',process:'加工製作',adhoc:'臨時訂單',variance:'調節損耗'}[t]||t);
-            const getCellClass = (d) => [d.isToday?'today-col':'', d.isToday?'today-border-l':'', d.isToday?'today-border-r':''].join(' ');
-            const getStockTextClass = (v) => v>160?'text-red-600':(v>100?'text-yellow-600':(v<0?'text-red-500':'text-slate-800'));
-
-            const parseRoute = (txt) => {
-                const r = txt.split('\n').slice(1);
-                const res = [0,0,0,0,0,0,0];
-                r.forEach(row => {
-                    const c = row.split(','); if(c.length<3)return;
-                    for(let d=0; d<7; d++) {
-                        let sum=0; for(let k=0; k<5; k++) sum+=(parseInt(c[(3+((d===0?6:d-1)*5))+k]?.replace(/２/g,'2'))||0);
-                        res[d]+=sum;
-                    }
-                });
-                rawRoute.value = res;
-                // If settings are empty (first load ever), init them
-                if(routeSettings.value.every(v=>v===0)) resetRouteSettings(false);
-            };
-            const parseHome = (txt) => {
-                const r = txt.split('\n').slice(1);
-                const d = [[],[],[],[],[]];
-                r.forEach(row => {
-                    const c = row.split(','); if(c.length<2)return;
-                    for(let i=0; i<5; i++) {
-                        const b=parseInt(c[2+i*2])||0, s=parseInt(c[3+i*2])||0;
-                        if(b||s) d[i].push({uuid:c[0], name:c[1], big:b, small:s});
-                    }
-                });
-                rawHome.value = d;
+            const saveDateSettings = () => {
+                const { key, val, text } = drawer.value;
+                db.child(`days/${key}`).update({ color:val, taskLabel:text });
+                drawer.value.show = false;
             };
 
-            return { days, todayEndStock, drawer, toast, edit, save, adj, toggleStatus, getCellClass, getStockTextClass, sidebarOpen, routeSettings, scrollToToday, resetRouteSettings, saveSettings };
+            const adj=(n)=>drawer.value.val=parseFloat((drawer.value.val+n).toFixed(1));
+            const setDateColor=(c)=>drawer.value.val=c; const setDateTask=(t)=>drawer.value.text=t;
+            const getTitle=(t)=>({inventory:'期初庫存',harvestAM:'晨間收乳',harvestPM:'晚間收乳',checklist:'家庭宅配',process:'加工製作',flash:'快閃活動',adhoc:'臨時訂單',routePrep:'晨配預製'}[t]||t);
+            
+            const parseRoute=(t)=>{const r=t.split('\n').slice(1);const res=[0,0,0,0,0,0,0];r.forEach(x=>{const c=x.split(',');if(c.length<3)return;for(let d=0;d<7;d++){let s=0;for(let k=0;k<5;k++)s+=(parseInt(c[(3+((d===0?6:d-1)*5))+k]?.replace(/２/g,'2'))||0);res[d]+=s;}});rawRoute.value=res;};
+            const parseHome=(t)=>{const r=t.split('\n').slice(1);const d=[[],[],[],[],[]];r.forEach(x=>{const c=x.split(',');if(c.length<2)return;for(let i=0;i<5;i++){const b=parseInt(c[2+i*2])||0,s=parseInt(c[3+i*2])||0;if(b||s)d[i].push({uuid:c[0],name:c[1],big:b,small:s});}});rawHome.value=d;};
+
+            return { days, todayEndStock:computed(()=>days.value.find(d=>d.key===new Date().toISOString().split('T')[0])?.endStock||0), drawer, toast, colorOptions, taskOptions, edit, openDateSettings, save, saveDateSettings, setDateColor, setDateTask, adj };
         }
     }).mount('#app');
 </script>
