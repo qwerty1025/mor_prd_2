@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>五寮尖 V17.5 預備制邏輯版</title>
+    <title>五寮尖 V17.1 便當風格版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -13,68 +13,80 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
+        /* 核心佈局 */
         html, body { 
             height: 100dvh; margin: 0; padding: 0; overflow: hidden;
-            background-color: #f8fafc; font-family: 'Noto Sans TC', sans-serif; touch-action: pan-x;
+            background-color: #f8fafc; font-family: 'Noto Sans TC', sans-serif; 
+            touch-action: pan-x; 
         }
         [v-cloak] { display: none; }
         #app { height: 100%; display: flex; flex-direction: column; }
+
+        /* 表格容器 */
         .table-wrapper {
             flex: 1; overflow-x: auto; overflow-y: hidden; position: relative;
-            background-color: #fff; display: flex; flex-direction: column; scroll-snap-type: x mandatory; scroll-behavior: smooth;
+            background-color: #fff; display: flex; flex-direction: column;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth; /* 滑動平滑 */
         }
         .milk-table { height: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
         .milk-table th, .milk-table td { 
-            padding: 2px 4px; text-align: center; border-right: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;
-            white-space: nowrap; font-size: 13px; position: relative; box-sizing: border-box;
+            padding: 2px 4px; text-align: center; border-right: 1px solid #f1f5f9; 
+            border-bottom: 1px solid #f1f5f9; white-space: nowrap; font-size: 13px; 
+            position: relative; box-sizing: border-box;
         }
+
+        /* 欄寬設定 */
         .col-day { width: 28vw; min-width: 90px; scroll-snap-align: start; } 
         .col-header { width: 110px; min-width: 110px; z-index: 50; }
+
+        /* 凍結窗格 */
         .milk-table td:first-child, .milk-table th:first-child {
             position: sticky; left: 0; z-index: 20; background-color: #fff; 
-            border-right: 2px solid #e2e8f0; text-align: left; padding-left: 12px; color: #64748b; font-weight: 700;
+            border-right: 2px solid #e2e8f0; text-align: left; padding-left: 12px; 
+            color: #64748b; font-weight: 700;
         }
         .milk-table thead th { position: sticky; top: 0; z-index: 10; background-color: #fff; border-bottom: 2px solid #e2e8f0; height: 60px; }
         .milk-table thead th:first-child { z-index: 30; background-color: #fff; }
+
+        /* 樣式與視覺 */
         .row-icon { width: 18px; text-align: center; display: inline-block; margin-right: 4px; opacity: 0.6; }
         .time-label { display: block; font-size: 10px; color: #94a3b8; font-weight: 500; margin-bottom: 1px; }
         .item-label { font-size: 12px; color: #334155; font-weight: 700; }
         .sub-label { font-size: 9px; color: #cbd5e1; font-weight: normal; margin-left: 2px; }
+
         .today-col { background-color: #f0f7ff; }
         .today-border-l { border-left: 2px solid #3b82f6; }
         .today-border-r { border-right: 2px solid #3b82f6; }
         .today-header { background-color: #eff6ff !important; color: #1d4ed8; }
+
         .num-font { font-family: 'Roboto Mono', monospace; letter-spacing: -0.5px; font-weight: 500; font-size: 15px; }
         .val-plus { color: #059669; background: #ecfdf5; padding: 2px 6px; border-radius: 6px; font-weight: 700; }
         .val-minus { color: #2563eb; font-weight: 700; }
-        .val-prep-prev { color: #94a3b8; font-weight: 400; text-decoration: line-through; text-decoration-color: #cbd5e1; }
-        .icon-prev { font-size: 10px; margin-right: 2px; vertical-align: middle; color: #f59e0b; }
         .val-process { color: #d97706; font-size: 12px; font-weight: 700; }
         .val-balance { font-size: 18px; font-weight: 900; color: #1e293b; }
         .info-row td { background-color: #f8fafc; color: #64748b; font-size: 11px; vertical-align: middle; border-top: 2px solid #e2e8f0; height: 50px; }
-        
-        /* Drawer & Sidebar */
+
+        /* 側邊欄 (Sidebar) */
+        .sidebar-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 60; transition: opacity 0.3s; }
+        .sidebar { 
+            position: fixed; top: 0; bottom: 0; left: 0; width: 85vw; max-width: 320px; 
+            background: #fff; z-index: 70; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+        }
+        .sidebar.active { transform: translateX(0); }
+
+        /* 抽屜 (Bottom Sheet) */
         .drawer-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 40; }
         .drawer-body { 
             position: fixed; bottom: 0; left: 0; right: 0; background: white; z-index: 50; 
             border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom);
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.1); transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .drawer-body.active { transform: translateY(0); }
-
-        .sidebar {
-            position: fixed; top: 0; right: 0; bottom: 0; width: 280px; background: white; z-index: 60;
-            box-shadow: -10px 0 40px rgba(0,0,0,0.1); transform: translateX(100%); transition: transform 0.3s ease;
-            padding: 20px; display: flex; flex-direction: column;
-        }
-        .sidebar.active { transform: translateX(0); }
-        .sidebar-item {
-            padding: 16px; border-radius: 12px; font-weight: 700; color: #475569; display: flex; items-center; gap: 12px;
-            transition: all 0.2s; cursor: pointer;
-        }
-        .sidebar-item:active { background-color: #f1f5f9; transform: scale(0.98); }
-        .sidebar-item i { width: 24px; text-align: center; }
-
+        
+        /* Toast */
         .toast {
             position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-100px);
             background: #1e293b; color: white; padding: 10px 20px; border-radius: 30px;
@@ -102,6 +114,50 @@
         </div>
     </header>
 
+    <div v-if="sidebarOpen" class="sidebar-mask" @click="sidebarOpen=false"></div>
+    <div class="sidebar" :class="{ 'active': sidebarOpen }">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 class="text-lg font-black text-slate-800">選單設定</h2>
+            <button @click="sidebarOpen=false" class="w-8 h-8 rounded-full bg-white text-slate-400 shadow-sm flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+            <div>
+                <button @click="scrollToToday" class="w-full bg-blue-50 text-blue-600 font-bold py-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fas fa-calendar-day"></i> 返回今日
+                </button>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-end mb-4">
+                    <h3 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fas fa-truck text-slate-400"></i> 晨間配送設定
+                    </h3>
+                    <button @click="resetRouteSettings" class="text-xs font-bold text-red-400 underline">重設預設值</button>
+                </div>
+                <div class="space-y-3">
+                    <div v-for="(val, idx) in routeSettings" :key="idx" class="flex items-center gap-3">
+                        <div class="w-8 text-sm font-bold text-slate-400">{{ ['日','一','二','三','四','五','六'][idx] }}</div>
+                        <input type="number" step="0.01" v-model.number="routeSettings[idx]" 
+                            class="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-right font-mono font-bold text-slate-700 focus:border-blue-500 outline-none">
+                        <div class="text-xs text-slate-300 w-4">L</div>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-400 mt-2 leading-tight">
+                    * 設定每日的「標準配送量」。系統會依據生產排程邏輯（如週五製作週末份）自動對應到正確日期。
+                </p>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-100">
+            <button @click="saveSettings" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition">
+                儲存設定
+            </button>
+        </div>
+    </div>
+
     <div class="table-wrapper" ref="tableContainer">
         <table class="milk-table">
             <thead>
@@ -111,7 +167,7 @@
                             <span class="text-xs text-slate-400 font-bold">項目 \ 日期</span>
                         </div>
                     </th>
-                    <th v-for="d in days" :key="d.key" class="col-day" :id="'day-'+d.key"
+                    <th v-for="d in days" :key="d.key" :id="'header-'+d.key" class="col-day" 
                         :class="{'today-header': d.isToday, 'bg-orange-50': d.isWeekend && !d.isToday, 'today-border-l': d.isToday, 'today-border-r': d.isToday}">
                         <div class="flex flex-col items-center justify-center">
                             <span class="text-sm font-black">{{ d.weekDay }}</span>
@@ -147,16 +203,11 @@
                     <td>
                         <span class="time-label">09:00</span>
                         <i class="fas fa-truck row-icon text-slate-400"></i><span class="item-label">晨間配送</span>
-                        <div class="sub-label text-[9px] text-amber-500 transform scale-90 origin-left">前日製作</div>
+                        <div class="sub-label">昨20:00製作</div>
                     </td>
                     <td v-for="d in days" :key="d.key" @click="edit('deliveryRoute', d)" 
                         class="cursor-pointer" :class="getCellClass(d)">
-                        <div v-if="d.displayRoute > 0">
-                            <span v-if="d.isRoutePreppedBefore" class="icon-prev">⬅️</span>
-                            <span class="num-font font-bold" :class="d.isRoutePreppedBefore ? 'val-prep-prev' : 'text-slate-500'">
-                                -{{ d.displayRoute.toFixed(1) }}
-                            </span>
-                        </div>
+                        <span v-if="d.deliveryRoute > 0" class="num-font text-slate-400 font-bold">-{{ d.deliveryRoute.toFixed(1) }}</span>
                         <span v-else class="text-slate-200">-</span>
                     </td>
                 </tr>
@@ -165,16 +216,10 @@
                     <td>
                         <span class="time-label">10:00</span>
                         <i class="fas fa-users row-icon text-blue-500"></i><span class="item-label">家庭宅配</span>
-                        <div class="sub-label text-[9px] text-blue-300 transform scale-90 origin-left">週一訂單併入週日</div>
                     </td>
                     <td v-for="d in days" :key="d.key" @click="edit('checklist', d)" 
                         class="cursor-pointer" :class="getCellClass(d)">
-                        <div v-if="d.displayHome > 0">
-                             <span v-if="d.isHomePreppedBefore" class="icon-prev">⬅️</span>
-                             <span class="num-font font-bold" :class="d.isHomePreppedBefore ? 'val-prep-prev' : 'val-minus'">
-                                -{{ d.displayHome.toFixed(1) }}
-                             </span>
-                        </div>
+                        <span v-if="d.deliveryHome > 0" class="num-font val-minus">-{{ d.deliveryHome.toFixed(1) }}</span>
                         <span v-else class="text-slate-200">-</span>
                     </td>
                 </tr>
@@ -190,6 +235,7 @@
                         <span v-else class="text-slate-200">-</span>
                     </td>
                 </tr>
+
                 <tr>
                     <td>
                         <span class="time-label">14:00</span>
@@ -201,7 +247,8 @@
                         <span v-else class="text-slate-200">-</span>
                     </td>
                 </tr>
-                 <tr>
+
+                <tr>
                     <td>
                         <span class="time-label">15:00</span>
                         <i class="fas fa-clipboard-list row-icon text-purple-500"></i><span class="item-label">臨時/團購</span>
@@ -266,47 +313,9 @@
         </table>
     </div>
 
-    <div v-if="sidebarOpen" class="drawer-mask" @click="sidebarOpen=false"></div>
-    <div class="sidebar" :class="{ 'active': sidebarOpen }">
-        <div class="mb-8 px-2">
-            <h2 class="text-2xl font-black text-slate-800">選單</h2>
-            <p class="text-xs text-slate-400 mt-1">V17.5 便當風格版</p>
-        </div>
-        
-        <div class="space-y-2 flex-1">
-            <div @click="scrollToToday(); sidebarOpen=false" class="sidebar-item bg-blue-50 text-blue-600">
-                <i class="fas fa-calendar-day"></i>
-                <span>返回今日</span>
-            </div>
-            
-            <div @click="sidebarOpen=false" class="sidebar-item">
-                <i class="fas fa-box-open"></i>
-                <span>庫存盤點 (開發中)</span>
-            </div>
-
-            <a :href="CSV_ROUTE" target="_blank" class="sidebar-item">
-                <i class="fas fa-table"></i>
-                <span>查看配送 CSV</span>
-            </a>
-            <a :href="CSV_HOME" target="_blank" class="sidebar-item">
-                <i class="fas fa-home"></i>
-                <span>查看宅配 CSV</span>
-            </a>
-        </div>
-
-        <div class="mt-auto border-t pt-4">
-             <div @click="location.reload()" class="sidebar-item text-red-400">
-                <i class="fas fa-sync-alt"></i>
-                <span>重新整理系統</span>
-            </div>
-        </div>
-    </div>
-
     <div v-if="drawer.show" class="drawer-mask" @click="drawer.show=false"></div>
     <div class="drawer-body" :class="{ 'active': drawer.show }">
-        
         <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-3 mb-4"></div>
-
         <div class="px-6 pb-6">
             <div class="flex justify-between items-end mb-6">
                 <div>
@@ -319,7 +328,6 @@
             </div>
 
             <div class="space-y-6">
-                
                 <div v-if="['inventory','harvestAM','harvestPM','deliveryRoute','flash','variance'].includes(drawer.type)" class="flex items-center gap-4">
                     <button @click="adj(-1)" class="w-16 h-16 bg-slate-100 rounded-2xl text-2xl font-bold text-slate-600 active:bg-slate-200">-</button>
                     <div class="flex-1">
@@ -350,7 +358,7 @@
                     </div>
                 </div>
 
-                 <div v-if="drawer.type === 'adhoc'" class="space-y-4">
+                <div v-if="drawer.type === 'adhoc'" class="space-y-4">
                     <div class="flex gap-4">
                         <div class="flex-1 bg-purple-50 p-4 rounded-2xl flex flex-col items-center">
                             <span class="text-xs font-bold text-purple-800 mb-1">大 (0.95)</span>
@@ -384,9 +392,6 @@
                             <i class="fas fa-check"></i>
                         </button>
                     </div>
-                     <div v-if="drawer.isSunday" class="pt-2 text-center">
-                        <button @click="loadMonday" class="text-xs bg-indigo-100 text-indigo-600 px-3 py-1.5 rounded-lg font-bold">載入週一訂單</button>
-                    </div>
                 </div>
 
             </div>
@@ -419,14 +424,16 @@
         setup() {
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database().ref('milkBankV15');
-            const tableContainer = ref(null);
+            const settingsRef = firebase.database().ref('milkBankSettings');
             
-            const rawRoute = ref([]);
+            const rawRoute = ref([0,0,0,0,0,0,0]); // 0=Sun, 1=Mon...
             const rawHome = ref([]);
             const savedData = ref({});
+            const routeSettings = ref([0,0,0,0,0,0,0]); // User defined route values
             const drawer = ref({ show:false, type:'', title:'', key:'', dateLabel:'', val:0, text:'', pSmall:0, pBig:0, adBig:0, adSmall:0, adCustom:0, list:[] });
             const toast = ref({ show:false, msg:'' });
             const sidebarOpen = ref(false);
+            const tableContainer = ref(null);
 
             const START = new Date('2026-02-04');
             const WEEK = ['日','一','二','三','四','五','六'];
@@ -436,154 +443,163 @@
                 try {
                     const [r1, r2] = await Promise.all([fetch(CSV_ROUTE).then(x=>x.text()), fetch(CSV_HOME).then(x=>x.text())]);
                     parseRoute(r1); parseHome(r2);
+                    
+                    // Listen for Data
                     db.on('value', snap => { savedData.value = snap.val()?.days || {}; });
-                    // Scroll to today on initial load after short delay
+                    
+                    // Listen for Settings
+                    settingsRef.child('routeConfig').on('value', snap => {
+                        const val = snap.val();
+                        if (val) {
+                            routeSettings.value = val;
+                        } else {
+                            // Default init if no settings
+                            resetRouteSettings(false);
+                        }
+                    });
+
+                    // Initial Scroll to Today
                     setTimeout(scrollToToday, 1000);
                 } catch(e) { console.error(e); }
             });
 
-            // Helper to get raw data for any day index (0-29)
-            const getDayData = (i) => {
-                const d = new Date(START); d.setDate(START.getDate()+i);
-                const y=d.getFullYear(), m=d.getMonth()+1, dd=d.getDate();
-                const key = `${y}-${m}-${dd}`;
-                const wIdx = d.getDay();
-                const s = savedData.value[key] || {};
-                
-                // Route Demand
-                let route = (rawRoute.value[wIdx]||0) * 0.18;
-                if(s.deliveryRoute !== undefined) route = s.deliveryRoute;
-
-                // Home Demand
-                let home = 0;
-                let bottleInfo = { big: 0, small: 0 };
-                const defList = (wIdx>=1 && wIdx<=5) ? (rawHome.value[wIdx-1]||[]) : [];
-                const actList = s.customList || defList;
-                const chk = s.checklist || {};
-                
-                actList.forEach(item => {
-                    const st = chk[item.uuid] || 'done';
-                    const fac = st==='split'?0.5 : (st==='done'?1:0);
-                    home += ((item.big*0.95)+(item.small*0.5)) * fac;
-                    if (st !== 'skip') {
-                        bottleInfo.big += item.big;
-                        bottleInfo.small += item.small;
-                    }
-                });
-
-                return { 
-                    key, wIdx, s, route, home, actList, bottleInfo, 
-                    hAM: s.harvestAM ?? 13,
-                    hPM: s.harvestPM ?? 15,
-                    flash: s.flash || { vol:0, loc:'' },
-                    process: s.process || { vol:0 },
-                    adhoc: s.adhoc || { total:0, big:0, small:0, custom:0 },
-                    group: s.group || { vol:0, note:'' },
-                    vari: s.variance || { val:0, note:'' }
-                };
+            // 檢查是否為暫停服務日 (2026/2/17 - 2/19)
+            const isSuspendedDate = (d) => {
+                const s = d.toISOString().split('T')[0];
+                return s >= '2026-02-17' && s <= '2026-02-19';
             };
 
             const days = computed(() => {
-                const res = [];
-                // First Pass: Get raw demands for all days
-                const demands = [];
-                for(let i=0; i<35; i++) { // Fetch extra days for future lookup
-                    demands.push(getDayData(i));
-                }
-
                 let stock = 0;
-
+                const res = [];
                 for(let i=0; i<30; i++) {
-                    const cur = demands[i];
-                    const d = new Date(START); d.setDate(START.getDate()+i);
-                    const iso = d.toISOString().split('T')[0];
+                    const currentD = new Date(START); currentD.setDate(START.getDate()+i);
+                    const y=currentD.getFullYear(), m=currentD.getMonth()+1, dd=currentD.getDate();
+                    const key = `${y}-${m}-${dd}`;
+                    const iso = currentD.toISOString().split('T')[0];
+                    const wIdx = currentD.getDay();
+                    const s = savedData.value[key] || {};
                     
-                    // --- Logic Change: Calculate Effective Load based on "Prepped Previous Day" rules ---
-                    
-                    let loadRoute = 0;
-                    let loadHome = 0;
-
-                    // Rule 1: Route Load (Morning Delivery)
-                    // Logic: M-Th prep for T+1. Fri preps for Sat+Sun. Sat/Sun prep 0.
-                    if (cur.wIdx === 5) { // Friday
-                        // Friday preps for Sat + Sun
-                        loadRoute = demands[i+1].route + demands[i+2].route;
-                    } else if (cur.wIdx === 6 || cur.wIdx === 0) { // Sat, Sun
-                        // Weekend does not prep route (done on Fri)
-                        loadRoute = 0;
-                    } else { // Mon, Tue, Wed, Thu
-                        // Preps for next day
-                        loadRoute = demands[i+1].route;
-                    }
-
-                    // Rule 2: Home Delivery Load
-                    // Logic: Sunday preps for Monday. Monday preps 0. Others prep same day.
-                    if (cur.wIdx === 0) { // Sunday
-                        // Preps for itself (usually 0) + Monday
-                        loadRoute += 0; // Sunday doesn't prep Mon Route? Prompt says "Morning delivery" is diff logic.
-                        // Wait, prompt says: "Mon Home Delivery prepared on Sun".
-                        loadHome = cur.home + demands[i+1].home; 
-                    } else if (cur.wIdx === 1) { // Monday
-                        // Monday home load was done Sunday.
-                        loadHome = 0;
+                    // --- 晨間配送邏輯 (Route Logic) ---
+                    let route = 0;
+                    if(s.deliveryRoute !== undefined) {
+                        route = s.deliveryRoute;
                     } else {
-                        // Tue-Sat: Normal (prep/deliver same day)
-                        loadHome = cur.home;
+                        // 根據製作排程計算需求
+                        // 規則：前一晚20:00製作。
+                        // 週五做: 週六+週日
+                        // 週六做: 0 (休息)
+                        // 週日做: 週一
+                        // 週一~四做: 隔日
+                        let targetDays = [];
+                        
+                        if (wIdx === 5) { // Friday -> Preps for Sat & Sun
+                            const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
+                            const d2 = new Date(currentD); d2.setDate(currentD.getDate() + 2);
+                            targetDays.push(d1, d2);
+                        } else if (wIdx === 6) { // Saturday -> Preps nothing
+                            // 0
+                        } else if (wIdx === 0) { // Sunday -> Preps for Monday
+                             const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
+                             targetDays.push(d1);
+                        } else { // Mon-Thu -> Preps for Next Day
+                             const d1 = new Date(currentD); d1.setDate(currentD.getDate() + 1);
+                             targetDays.push(d1);
+                        }
+
+                        targetDays.forEach(targetDate => {
+                            if (!isSuspendedDate(targetDate)) {
+                                route += (routeSettings.value[targetDate.getDay()] || 0);
+                            }
+                        });
+                    }
+                    
+                    // --- 家庭宅配邏輯 (Home Logic) ---
+                    let home = 0;
+                    let actList = [];
+                    const chk = s.checklist || {};
+                    let bottleInfo = { big: 0, small: 0 };
+
+                    // 取得當日基本清單
+                    const getListForDay = (dayIdx) => (dayIdx>=1 && dayIdx<=5) ? (rawHome.value[dayIdx-1]||[]) : [];
+                    
+                    if (s.customList) {
+                        actList = s.customList;
+                    } else {
+                        // Shift Logic: Monday's orders done on Sunday.
+                        if (wIdx === 0) { // Sunday: Include Sunday(if any) + Monday
+                            const sundayList = getListForDay(0); // Usually empty
+                            const mondayList = getListForDay(1);
+                            actList = [...sundayList, ...mondayList];
+                        } else if (wIdx === 1) { // Monday: Empty (done on Sunday)
+                            actList = [];
+                        } else { // Tue-Sat: Standard
+                            actList = getListForDay(wIdx);
+                        }
                     }
 
-                    // Inventory Logic
-                    if(i===0 && cur.s.inventory===undefined) stock = 10;
-                    if(cur.s.inventory !== undefined) stock = cur.s.inventory;
+                    actList.forEach(item => {
+                        const st = chk[item.uuid] || 'done';
+                        const fac = st==='split'?0.5 : (st==='done'?1:0);
+                        home += ((item.big*0.95)+(item.small*0.5)) * fac;
+                         if (st !== 'skip') {
+                            bottleInfo.big += item.big;
+                            bottleInfo.small += item.small;
+                        }
+                    });
 
-                    // Calculation
-                    const totalOut = loadRoute + loadHome + cur.flash.vol + cur.process.vol + cur.adhoc.total + cur.group.vol;
-                    const end = stock + cur.hAM + cur.hPM - totalOut + cur.vari.val;
+                    const hAM = s.harvestAM ?? 13;
+                    const hPM = s.harvestPM ?? 15;
+                    const flash = s.flash || { vol:0, loc:'' };
+                    const process = s.process || { vol:0 };
+                    const adhoc = s.adhoc || { total:0, big:0, small:0, custom:0 };
+                    const group = s.group || { vol:0, note:'' };
+                    const vari = s.variance || { val:0, note:'' };
+
+                    if(i===0 && s.inventory===undefined) stock = 10;
+                    if(s.inventory !== undefined) stock = s.inventory;
+                    
+                    // Balance Calculation
+                    const end = stock + hAM + hPM - route - home - flash.vol - process.vol - adhoc.total - group.vol + vari.val;
                     stock = end;
 
-                    // Visual Flags
-                    // Does this day's displayed route come from yesterday?
-                    // Mon(1): Yes. Tue(2): Yes... Fri(5): Yes. Sat(6): Yes(from Fri). Sun(0): Yes(from Fri).
-                    // Actually, if "Morning Delivery is prep day before", then ANY day's delivery shown in the row was deducted yesterday.
-                    const isRoutePreppedBefore = true; 
-
-                    // Does this day's displayed home delivery come from yesterday?
-                    // Only Monday(1).
-                    const isHomePreppedBefore = cur.wIdx === 1;
-
                     res.push({
-                        key: cur.key, 
-                        dateStr: `${d.getMonth()+1}/${d.getDate()}`, 
-                        weekDay: WEEK[cur.wIdx],
-                        isWeekend: cur.wIdx===0||cur.wIdx===6, 
-                        isToday: iso===todayKey,
-                        startStock: cur.s.inventory!==undefined ? cur.s.inventory : (i===0?10:res[i-1].endStock),
-                        
-                        harvestAM: cur.hAM, 
-                        harvestPM: cur.hPM, 
-                        
-                        // Display values (what shows in the cell) vs Calculated Load (what subtracts from stock)
-                        displayRoute: cur.route,
-                        displayHome: cur.home,
-                        
-                        flash: cur.flash, 
-                        process: cur.process, 
-                        adhoc: cur.adhoc, 
-                        group: cur.group, 
-                        variance: cur.vari, 
-                        endStock: end,
-                        bottleInfo: cur.bottleInfo,
-                        rawHomeList: cur.actList,
-
-                        // Logic Flags
-                        calculatedLoad: loadRoute + loadHome, // Debug usage
-                        isRoutePreppedBefore,
-                        isHomePreppedBefore
+                        key, dateStr:`${m}/${dd}`, weekDay: WEEK[wIdx],
+                        isWeekend: wIdx===0||wIdx===6, isToday: iso===todayKey,
+                        startStock: s.inventory!==undefined ? s.inventory : (i===0?10:res[i-1].endStock),
+                        harvestAM: hAM, harvestPM: hPM, deliveryRoute: route, deliveryHome: home,
+                        flash, process, adhoc, group, variance: vari, endStock: end,
+                        bottleInfo,
+                        rawHomeList: actList
                     });
                 }
                 return res;
             });
 
             const todayEndStock = computed(() => days.value.find(d => d.isToday)?.endStock || 0);
+
+            // --- Actions ---
+
+            const scrollToToday = () => {
+                sidebarOpen.value = false;
+                nextTick(() => {
+                    const todayEl = document.querySelector('.today-header');
+                    if(todayEl) todayEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                });
+            };
+
+            const resetRouteSettings = (saveToDb = true) => {
+                // Default logic: raw CSV value * 0.18, rounded to 2 decimals
+                routeSettings.value = rawRoute.value.map(v => parseFloat((v * 0.18).toFixed(2)));
+                if(saveToDb) toast.value = {show:true, msg:'已重設為預設值 (未儲存)'};
+            };
+
+            const saveSettings = () => {
+                settingsRef.child('routeConfig').set(routeSettings.value).then(() => {
+                    toast.value = {show:true, msg:'設定已儲存'};
+                    sidebarOpen.value = false;
+                });
+            };
 
             const edit = (type, d) => {
                 drawer.value.show = true;
@@ -598,22 +614,13 @@
                 } else if (type==='process') {
                     drawer.value.pSmall=0; drawer.value.pBig=0;
                 } else if (type==='checklist') {
-                    drawer.value.isSunday = d.weekDay === '日';
-                    const savedChk = (savedData.value[d.key]||{}).checklist || {};
-                    drawer.value.list = d.rawHomeList.map(i => ({...i, status: savedChk[i.uuid]||'done'}));
+                    drawer.value.list = d.rawHomeList.map(i => ({...i, status: (savedData.value[d.key]||{}).checklist?.[i.uuid]||'done'}));
                 } else if (['flash','variance'].includes(type)) {
                      const field = type==='flash'?'flash':'variance';
                      const noteField = type==='flash'?'loc':'note';
                      drawer.value.val = d[field].val || 0; 
                      drawer.value.text = d[field][noteField];
                 } else {
-                    drawer.value.val = d[type==='deliveryRoute' ? 'displayRoute' : type]; // For Route, edit the display value
-                    if (type === 'deliveryRoute') drawer.value.val = d.displayRoute;
-                    if (type === 'checklist') drawer.value.val = d.displayHome;
-                }
-                
-                // Override for direct value edits
-                if (['inventory','harvestAM','harvestPM'].includes(type)) {
                     drawer.value.val = d[type];
                 }
             };
@@ -633,9 +640,8 @@
                     drawer.value.list.forEach(i => map[i.uuid] = i.status);
                     up[`${path}/checklist`] = map;
                 } else if(['flash','variance'].includes(type)) {
-                    const field = type; 
-                    const noteField = type==='flash' ? 'loc' : 'note';
-                    up[`${path}/${field}`] = { val: Number(val), [noteField]: text || '', vol: Number(val) }; 
+                    const field = type; const noteField = type==='flash' ? 'loc' : 'note';
+                    up[`${path}/${field}`] = { val: Number(val), [noteField]: text || '', vol: Number(val) };
                 } else {
                     up[`${path}/${type}`] = Number(val);
                 }
@@ -647,17 +653,7 @@
                 });
             };
 
-            const scrollToToday = () => {
-                const el = document.querySelector('.today-col');
-                const container = tableContainer.value;
-                if(el && container) {
-                    const offset = el.offsetLeft - 120; // Keep some left margin
-                    container.scrollTo({ left: offset, behavior: 'smooth' });
-                }
-            };
-
             const toggleStatus = (idx) => { const it = drawer.value.list[idx]; it.status = it.status==='done' ? 'skip' : 'done'; };
-            const loadMonday = () => { db.child(`days/${drawer.value.key}/customList`).set(rawHome.value[0]); drawer.value.show = false; };
             const adj = (n) => drawer.value.val = parseFloat((drawer.value.val+n).toFixed(1));
             const getTitle = (t) => ({inventory:'期初庫存',harvestAM:'晨間收乳',harvestPM:'晚間收乳',deliveryRoute:'晨間配送',checklist:'家庭號配送',flash:'快閃活動',process:'加工製作',adhoc:'臨時訂單',variance:'調節損耗'}[t]||t);
             const getCellClass = (d) => [d.isToday?'today-col':'', d.isToday?'today-border-l':'', d.isToday?'today-border-r':''].join(' ');
@@ -674,6 +670,8 @@
                     }
                 });
                 rawRoute.value = res;
+                // If settings are empty (first load ever), init them
+                if(routeSettings.value.every(v=>v===0)) resetRouteSettings(false);
             };
             const parseHome = (txt) => {
                 const r = txt.split('\n').slice(1);
@@ -688,10 +686,7 @@
                 rawHome.value = d;
             };
 
-            return { 
-                days, todayEndStock, drawer, toast, sidebarOpen, tableContainer, CSV_ROUTE, CSV_HOME,
-                edit, save, adj, toggleStatus, loadMonday, getCellClass, getStockTextClass, scrollToToday 
-            };
+            return { days, todayEndStock, drawer, toast, edit, save, adj, toggleStatus, getCellClass, getStockTextClass, sidebarOpen, routeSettings, scrollToToday, resetRouteSettings, saveSettings };
         }
     }).mount('#app');
 </script>
